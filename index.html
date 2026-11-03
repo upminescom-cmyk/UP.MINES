@@ -177,28 +177,52 @@ aside button[hidden]{display:none}
 .inv-pay .small{font-size:10px}
 .inv-pay img{width:84px;height:84px;object-fit:contain;image-rendering:pixelated;display:block}
 .inv-pay .lb{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
-#dsn{position:fixed;right:10px;top:70px;display:flex;flex-direction:column;gap:6px;z-index:12}
+#dsn{position:fixed;right:10px;top:70px;display:flex;flex-direction:column;gap:6px;z-index:12;max-height:calc(100vh - 90px);overflow-y:auto;padding:2px}
 #dsn[hidden]{display:none}
 #dsn b{color:#fff;font-size:12px;text-align:center}
-#dsn button{background:#fff;border:2px solid #fff;border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;cursor:pointer}
+#dsn button{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid #fff;border-radius:8px;padding:7px 10px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap;text-align:left}
+#dsn button i{width:14px;height:14px;border-radius:50%;flex-shrink:0;border:1px solid rgba(0,0,0,.2)}
 #dsn button.on{border-color:#f59e0b;font-weight:700}
+@media (max-width:900px){#dsn{top:auto;bottom:0;left:0;right:0;flex-direction:row;overflow-x:auto;overflow-y:hidden;max-height:none;background:rgba(22,32,46,.92);padding:8px}#dsn b{display:none}}
+/* ---- bill designs (variables: header, header text, header sub text, accent, light tint, border, title colour, total amount colour) ---- */
 #sheet.tx .inv-hd{background:var(--hd);color:var(--hdt)}
-#sheet.tx .inv-hd::after{background:var(--ac)}
+#sheet.tx .inv-hd::after{background:var(--tt)}
 #sheet.tx .inv-hd h1{color:var(--hdt)}
 #sheet.tx .inv-hd .small,#sheet.tx .inv-meta .dt{color:var(--hds)}
 #sheet.tx .inv-meta .tt{color:var(--tt)}
 #sheet.tx .inv-bill{background:var(--lt);border-left-color:var(--ac)}
 #sheet.tx .inv-bill .lb,#sheet.tx .inv-pay .lb{color:var(--ac)}
 #sheet.tx .inv-tbl{border-color:var(--bd)}
-#sheet.tx .inv-tbl th{background:var(--ac)}
+#sheet.tx .inv-tbl th{background:var(--ac);color:#fff}
+#sheet.tx .inv-tbl td{border-bottom-color:var(--bd)}
 #sheet.tx .inv-tbl tbody tr:nth-child(even) td{background:var(--lt)}
+#sheet.tx .inv-tot{background:var(--lt);border-color:var(--bd)}
 #sheet.tx .inv-tot .grand{background:var(--ac)}
-#sheet.tx .inv-tot .grand span:last-child{color:var(--tt)}
-#sheet.th1{--hd:#fff;--hdt:#111;--hds:#444;--ac:#111;--lt:#f4f4f4;--bd:#bbb;--tt:#fff}
-#sheet.th1 .inv-hd{border-bottom:3px solid #111}
-#sheet.th2{--hd:linear-gradient(120deg,#1e3a8a,#2563eb);--hdt:#fff;--hds:#dbeafe;--ac:#1d4ed8;--lt:#eff6ff;--bd:#bfdbfe;--tt:#fde68a}
-#sheet.th3{--hd:linear-gradient(120deg,#1f2937,#111827 60%,#b91c1c);--hdt:#fff;--hds:#e5e7eb;--ac:#c8102e;--lt:#fdf2f2;--bd:#f3c1c1;--tt:#fff}
-#sheet.th2 .inv-meta .tt{color:#fde68a}
+#sheet.tx .inv-tot .grand span:last-child{color:var(--gt)}
+#sheet.tx .inv-ft{background:var(--lt);border-color:var(--ac);color:#333}
+#sheet.lh .inv-hd{border-bottom:4px solid var(--ac)}
+#sheet.lh .inv-hd::after{display:none}
+#sheet.lh .inv-logo{box-shadow:none;border:1px solid var(--bd)}
+#sheet.th1{--hd:#fff;--hdt:#111;--hds:#555;--ac:#111;--lt:#f5f5f5;--bd:#cfcfcf;--tt:#111;--gt:#fff}
+#sheet.th2{--hd:linear-gradient(120deg,#1e3a8a,#2563eb);--hdt:#fff;--hds:#dbeafe;--ac:#1d4ed8;--lt:#eff6ff;--bd:#bfdbfe;--tt:#fde68a;--gt:#fde68a}
+#sheet.th3{--hd:linear-gradient(120deg,#1f2937,#111827 60%,#b91c1c);--hdt:#fff;--hds:#e5e7eb;--ac:#c8102e;--lt:#fdf2f2;--bd:#f3c1c1;--tt:#fff;--gt:#fff}
+#sheet.th4{--hd:#0b1f3a;--hdt:#fff;--hds:#b8c4d8;--ac:#0b1f3a;--lt:#f4f6fa;--bd:#cfd8e6;--tt:#e0b252;--gt:#e0b252}
+#sheet.th5{--hd:linear-gradient(120deg,#065f46,#10b981);--hdt:#fff;--hds:#d1fae5;--ac:#047857;--lt:#ecfdf5;--bd:#a7f3d0;--tt:#fef08a;--gt:#fef08a}
+#sheet.th6{--hd:linear-gradient(120deg,#4c1d95,#7c3aed);--hdt:#fff;--hds:#ede9fe;--ac:#6d28d9;--lt:#f5f3ff;--bd:#ddd6fe;--tt:#fcd34d;--gt:#fcd34d}
+#sheet.th7{--hd:#f8fafc;--hdt:#0f172a;--hds:#475569;--ac:#334155;--lt:#f1f5f9;--bd:#cbd5e1;--tt:#334155;--gt:#fff}
+#sheet.th8{--hd:linear-gradient(120deg,#9a3412,#f97316);--hdt:#fff;--hds:#ffedd5;--ac:#ea580c;--lt:#fff7ed;--bd:#fed7aa;--tt:#fff;--gt:#fff}
+#sheet.th9{--hd:#fff;--hdt:#111827;--hds:#4b5563;--ac:#111827;--lt:#fafafa;--bd:#e5e7eb;--tt:#111827;--gt:#111827}
+#sheet.th10{--hd:linear-gradient(120deg,#9f1239,#e11d48);--hdt:#fff;--hds:#ffe4e6;--ac:#be123c;--lt:#fff1f2;--bd:#fecdd3;--tt:#fff;--gt:#fff}
+#sheet.th11{--hd:#1f2937;--hdt:#fff;--hds:#cbd5e1;--ac:#0d9488;--lt:#f0fdfa;--bd:#99f6e4;--tt:#5eead4;--gt:#fff}
+/* minimal "lined" layout: no filled blocks, only clean rules */
+#sheet.ln .inv-bill{background:transparent;border-left-width:3px;border-radius:0}
+#sheet.ln .inv-tbl{border:0;border-radius:0;border-top:2px solid var(--ac);border-bottom:2px solid var(--ac)}
+#sheet.ln .inv-tbl th{background:transparent;color:var(--ac);border-bottom:1px solid var(--ac)}
+#sheet.ln .inv-tbl tbody tr:nth-child(even) td{background:transparent}
+#sheet.ln .inv-tot{background:transparent;border:0;border-top:2px solid var(--ac);border-radius:0}
+#sheet.ln .inv-tot .grand{background:transparent;color:var(--ac);border-top:1px solid var(--ac);margin:8px 0 0;padding:10px 0 4px;border-radius:0}
+#sheet.ln .inv-tot .grand span:last-child{color:var(--ac)}
+#sheet.ln .inv-ft{background:transparent;border-style:solid;border-width:1px 0 0;border-radius:0}
 @media (max-width:600px){.inv-hd,.inv-body{padding-left:16px;padding-right:16px}.inv-meta{text-align:left}}
 
 /* ---- print / save as PDF ---- */
@@ -210,6 +234,7 @@ aside button[hidden]{display:none}
   #viewer[hidden]{display:none !important}
   .viewer-box{max-width:none !important;width:100%;margin:0 !important}
   .viewer-bar{display:none !important}
+  #dsn{display:none !important}
   #sheet{width:100%;border-radius:0 !important;box-shadow:none}
   #sheet .scroll{overflow:visible !important}
   #sheet .inv-tbl{table-layout:fixed;width:100%}
@@ -757,12 +782,19 @@ function renderDayBook() {
 
 
 /* ---------- bill design + account details ---------- */
-const DESIGNS = ['Design 1', 'Design 2', 'Design 3', 'Design 4'];
+const DESIGNS = [
+  ['Teal Classic', '', '#0f766e'], ['Mono Classic', 'th1 lh', '#111111'], ['Royal Blue', 'th2', '#1d4ed8'],
+  ['Crimson Corporate', 'th3', '#c8102e'], ['Navy & Gold', 'th4', '#0b1f3a'], ['Emerald Fresh', 'th5', '#047857'],
+  ['Purple Modern', 'th6', '#6d28d9'], ['Slate Light', 'th7 lh', '#334155'], ['Sunrise Orange', 'th8', '#ea580c'],
+  ['Minimal Line', 'th9 lh ln', '#111827'], ['Rose', 'th10', '#be123c'], ['Charcoal Teal', 'th11', '#0d9488']
+];
 let design = 0;
+try { design = Math.min(Math.max(0, parseInt(localStorage.getItem('bill-design')) || 0), DESIGNS.length - 1); } catch (e) { design = 0; }
+function setDesign(k) { design = k; try { localStorage.setItem('bill-design', k); } catch (e) {} applyDesign(); }
 function applyDesign(show) {
-  const sh = $('#sheet'); sh.className = design ? 'tx th' + design : '';
+  const sh = $('#sheet'), c = DESIGNS[design][1]; sh.className = c ? 'tx ' + c : '';
   const d = $('#dsn'); if (show) d.hidden = false;
-  d.innerHTML = '<b>Bill design</b>' + DESIGNS.map((n, k) => `<button class="${k === design ? 'on' : ''}" onclick="design = ${k}; applyDesign()">${n}</button>`).join('');
+  d.innerHTML = '<b>Bill design</b>' + DESIGNS.map((x, k) => `<button class="${k === design ? 'on' : ''}" onclick="setDesign(${k})"><i style="background:${x[2]}"></i>${x[0]}</button>`).join('');
 }
 function payBlock() {
   const p = (db.settings && db.settings.pay) || {};
