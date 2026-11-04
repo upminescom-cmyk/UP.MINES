@@ -1807,9 +1807,10 @@ function findIds(text) {
     const lm = seg.match(/imei\W{0,3}[A-Za-z]?\W{0,3}((?:[0-9OoIl][ \-]?){15})/i); if (lm) cands.push({d: clean(lm[1]), label: true, cc: false});
     const cm = seg.match(/c?ccid\W{0,3}((?:[0-9OoIl][ \-]?){18,21})/i); if (cm) cands.push({d: clean(cm[1]), label: false, cc: true});
   });
-  const iccids = cands.filter(c => c.d.length >= 18 && c.d.length <= 22 && (c.cc || c.d.startsWith('89')) && (c.d.startsWith('89') || c.d.length <= 20))
-    .sort((a, b) => ((b.cc ? 2 : 0) + (b.d.startsWith('89') ? 1 : 0)) - ((a.cc ? 2 : 0) + (a.d.startsWith('89') ? 1 : 0)));
-  const imeis = cands.filter(c => c.d.length === 15 && !c.d.startsWith('89')).sort((a, b) => (b.label - a.label) || ((luhn(b.d) ? 1 : 0) - (luhn(a.d) ? 1 : 0)));
+  // ICCID always starts with 899. IMEI is 15 digits and starts with 86 or 359926 (this skips UID, S.No, phone numbers).
+  const iccids = cands.filter(c => c.d.length >= 19 && c.d.length <= 20 && c.d.startsWith('899'))
+    .sort((a, b) => ((b.cc ? 2 : 0) + (luhn(b.d) ? 1 : 0)) - ((a.cc ? 2 : 0) + (luhn(a.d) ? 1 : 0)));
+  const imeis = cands.filter(c => c.d.length === 15 && (c.d.startsWith('86') || c.d.startsWith('359926'))).sort((a, b) => (b.label - a.label) || ((luhn(b.d) ? 1 : 0) - (luhn(a.d) ? 1 : 0)));
   return {imei: imeis.length ? imeis[0].d : '', iccid: iccids.length ? iccids[0].d : ''};
 }
 const readImg = file => new Promise(res => { const r = new FileReader(); r.onload = () => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = r.result; }; r.onerror = () => res(null); r.readAsDataURL(file); });
@@ -1870,6 +1871,8 @@ async function submitRR() {
   if (!plan) { toast('Select the recharge plan.'); return; }
   if (!okIccid(iccid)) { toast('SIM ICCID must be 18 to 22 digits.'); return; }
   if (!okImei15(imei)) { toast('IMEI must be 15 digits.'); return; }
+  if (!/^(86|359926)/.test(imei) && !confirm('This IMEI does not start with 86 or 359926. Is it correct?')) return;
+  if (!iccid.startsWith('899') && !confirm('This SIM ICCID does not start with 899. Is it correct?')) return;
   const btn = $('#rr-go'); btn.disabled = true;
   try {
     const mine = await rrFetch(true);
@@ -1891,8 +1894,8 @@ async function renderRR() {
         <div><label for="rr-name">Client name</label><input id="rr-name" autocomplete="off"></div>
         <div><label for="rr-phone">Client number</label><input id="rr-phone" inputmode="tel" autocomplete="off"></div>
         <div><label for="rr-plan">Recharge plan</label><select id="rr-plan"><option value="">Select plan</option>${PLANS.map(x => `<option>${x}</option>`).join('')}</select></div>
-        <div><label for="rr-iccid">SIM ICCID number</label><input id="rr-iccid" inputmode="numeric" autocomplete="off" placeholder="Filled from the image"></div>
-        <div><label for="rr-imei">IMEI number</label><input id="rr-imei" inputmode="numeric" autocomplete="off" placeholder="Filled from the image"></div>
+        <div><label for="rr-iccid">SIM ICCID number</label><input id="rr-iccid" inputmode="numeric" autocomplete="off" placeholder="Starts with 899"></div>
+        <div><label for="rr-imei">IMEI number</label><input id="rr-imei" inputmode="numeric" autocomplete="off" placeholder="Starts with 86 or 359926"></div>
       </div>
       <div style="margin-top:12px"><label for="rr-file">Device details (upload an image of the GPS device)</label>
         <div class="rr-img"><input id="rr-file" type="file" accept="image/*" onchange="rrPickImage(this.files[0])" style="max-width:320px"><img id="rr-prev" alt="Device" hidden></div>
