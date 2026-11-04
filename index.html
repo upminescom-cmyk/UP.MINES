@@ -1917,7 +1917,9 @@ function drawRRList() {
     if (!adm) return `<tr><td>${d(r.created)}</td><td>${cl}</td><td><b>${esc(r.vehicle || '')}</b></td><td>${esc(r.plan)}</td><td>${ids}</td><td>${pill(r)}</td><td>${r.status === 'Active' ? d(r.expiry) : ''}</td></tr>`;
     const act = r.status === 'Pending'
       ? `<div class="rr-act"><label for="rx-${r.id}" style="margin:0">Vehicle expiry date</label><input id="rx-${r.id}" type="date"><div class="row-actions"><button class="btn" onclick="approveRR('${r.id}')">Approve</button><button class="ghost danger" onclick="rejectRR('${r.id}')">Reject</button></div></div>`
-      : `${pill(r)}${r.status === 'Active' ? `<div class="small">Expiry: ${d(r.expiry)}</div>` : ''}`;
+      : r.status === 'Active'
+        ? `${pill(r)}<div class="rr-act" style="margin-top:6px"><label for="ex-${r.id}" style="margin:0">Vehicle expiry</label><input id="ex-${r.id}" type="date" value="${esc(r.expiry || '')}"><button class="ghost" onclick="updateExpiryRR('${r.id}')">Update expiry</button></div>`
+        : pill(r);
     return `<tr><td>${d(r.created)}</td><td>${esc(r.by)}<div class="small" style="color:var(--muted)">${esc(r.user)}</div></td><td>${cl}</td><td><b>${esc(r.vehicle || '')}</b></td><td>${esc(r.plan)}</td><td>${ids}</td><td>${r.hasImg ? `<button class="ghost" onclick="viewRRImg('${r.id}')">View</button>` : ''}</td><td>${act}</td></tr>`;
   }).join('');
   const filt = adm ? `<select style="width:auto" onchange="rrFilter = this.value; drawRRList()" aria-label="Filter">${[['Pending', 'Pending'], ['Active', 'Active'], ['Rejected', 'Rejected'], ['', 'All']].map(([v, l]) => `<option value="${v}" ${rrFilter === v ? 'selected' : ''}>${l}</option>`).join('')}</select>` : '';
@@ -1960,6 +1962,20 @@ async function approveRR(id) {
     const w = await sb.from('ib_docs').upsert(reqRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error;
     toast('Approved. The device is added to ' + (r.by || 'the user') + "'s inventory."); pollReq(true);
   } catch (e) { console.error(e); toast('Could not approve: ' + errMsg(e)); }
+  finally { rrAct = false; }
+}
+async function updateExpiryRR(id) {
+  const r = rrCache.find(x => x.id === id); if (!r || rrAct || cur.role !== 'admin' || r.status !== 'Active') return;
+  const exp = ($('#ex-' + id) || {}).value;
+  if (!exp) { toast('Enter the Vehicle expiry date.'); return; }
+  if (exp === r.expiry) { toast('Expiry date is not changed.'); return; }
+  rrAct = true;
+  try {
+    await addDeviceToOwner(r.owner, {id: uid(), imei: r.imei, iccid: r.iccid, vehicle: r.vehicle || '', name: r.client, phone: r.phone, plan: r.plan, expiry: exp});
+    Object.assign(r, {expiry: exp, invDone: false});
+    const w = await sb.from('ib_docs').upsert(reqRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error;
+    toast('Vehicle expiry updated to ' + fmtD(exp) + '.'); pollReq(true);
+  } catch (e) { console.error(e); toast('Could not update expiry: ' + errMsg(e)); }
   finally { rrAct = false; }
 }
 async function rejectRR(id) {
