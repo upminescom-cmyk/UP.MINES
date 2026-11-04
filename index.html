@@ -319,6 +319,7 @@ aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6
     <button data-tab="invoices">Invoice</button>
     <button data-tab="inv">Inventory</button>
     <button data-tab="rr">Recharge Request</button>
+    <button data-tab="td">Update Tempering Data</button>
     <button data-tab="products">Products</button>
     <button data-tab="customers">Customers</button>
     <button data-tab="acc">Account details</button>
@@ -538,7 +539,7 @@ const lineAmt = it => (+it.qty || 0) * (+it.price || 0);
 
 /* ---------- navigation ---------- */
 let tab = 'dash';
-const TABS = ['dash', 'new', 'invoices', 'inv', 'rr', 'products', 'customers', 'acc', 'wa', 'settings', 'users'];
+const TABS = ['dash', 'new', 'invoices', 'inv', 'rr', 'td', 'products', 'customers', 'acc', 'wa', 'settings', 'users'];
 const ADMIN_ONLY = ['products', 'customers', 'acc', 'wa', 'settings', 'users']; // normal users see only: Dashboard, Create invoice, Invoice, Inventory, Recharge Request
 const PMAP = {acc: 'settings', wa: 'settings', rr: 'recharge'};
 const NEWP = {addcust: 'customers', invadd: 'inv', invbulk: 'inv', recharge: 'new'}; // new rights follow the old right until Admin saves the account
@@ -555,7 +556,7 @@ function go(t) {
   if (t !== tab) { tmpLogo = ''; editU = null; editB = null; qc = false; }
   tab = t;
   document.querySelectorAll('aside button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ({new: renderNew, invoices: renderInvoices, products: renderProducts, customers: renderCustomers, settings: renderSettings, dash: renderDash, users: renderUsers, inv: renderInventory, rr: renderRR, acc: renderAccount, wa: renderWa})[t]();
+  ({new: renderNew, invoices: renderInvoices, products: renderProducts, customers: renderCustomers, settings: renderSettings, dash: renderDash, users: renderUsers, inv: renderInventory, rr: renderRR, td: renderTD, acc: renderAccount, wa: renderWa})[t]();
   $('#brand').textContent = defBiz().name || 'Billing';
   window.scrollTo(0, 0);
 }
@@ -2039,9 +2040,106 @@ async function pollReq(force) {
 setInterval(() => { if (cur && !document.hidden) pollReq(); }, 15000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && cur) pollReq(); });
 
+/* ---------- update tempering data ---------- */
+const TD_TPL = "$DP,TNOWTN,2.0.4,NR,01,L,{IMEI},{VEH},1,{DATE},{TIME},{LAT},{NS},{LON},{EW},0.0,207.78,45,265.5,0.60,0.40,airtel,0,1,25.6,4.0,0,C,29,404,97,06BC,3014,31,06BC,8E3C,31,06BC,8E1E,31,06BC,6E01,31,06BC,585A,0000,00,0,85091.887,0,0,{SEQ},(),{CRC}*";
+const TD_DEF = {ip: '154.210.168.75', port: '4002', lat: '30.0098235', lon: '77.5719748', veh: '0000', url: 'send.php'};
+const TDK = 'tdlog:';
+let tdCache = [], tdAdminCfg = null, tdSending = false, tdLast = null;
+const TDT = [...Array(256)].map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+const tdCrc = t => { let c = -1; for (let i = 0; i < t.length; i++) c = TDT[(c ^ t.charCodeAt(i)) & 255] ^ (c >>> 8); return ((c ^ -1) >>> 0).toString(16).toUpperCase().padStart(8, '0'); };
+function tdFormCfg() { const g = id => ($('#td-' + id) ? $('#td-' + id).value.trim() : ''); return {ip: g('ip') || TD_DEF.ip, port: g('port') || TD_DEF.port, lat: g('lat') || TD_DEF.lat, lon: g('lon') || TD_DEF.lon, veh: g('veh') || TD_DEF.veh, url: g('url') || TD_DEF.url}; }
+const tdCfg = () => cur.role === 'admin' ? Object.assign({}, TD_DEF, tdAdminCfg || {}) : Object.assign({}, TD_DEF, (cur.perms && cur.perms._td) || {});
+function tdPacket(imei, c, seq) {
+  const d = new Date(), z = n => String(n).padStart(2, '0'), lat = parseFloat(c.lat) || 30.0098235, lon = parseFloat(c.lon) || 77.5719748;
+  const v = {IMEI: imei, VEH: c.veh || '0000', DATE: z(d.getUTCDate()) + z(d.getUTCMonth() + 1) + d.getUTCFullYear(), TIME: z(d.getUTCHours()) + z(d.getUTCMinutes()) + z(d.getUTCSeconds()), LAT: Math.abs(lat).toFixed(8), NS: lat < 0 ? 'S' : 'N', LON: Math.abs(lon).toFixed(8), EW: lon < 0 ? 'W' : 'E', SEQ: String(seq % 1000000).padStart(6, '0')};
+  let p = TD_TPL; Object.keys(v).forEach(k => { p = p.replace('{' + k + '}', v[k]); });
+  return p.replace('{CRC}', tdCrc(p.slice(0, p.indexOf('{CRC}'))));
+}
+async function renderTD() {
+  if (!cur) return;
+  const adm = cur.role === 'admin';
+  if (adm && !tdAdminCfg) {
+    try { const r = await sb.from('ib_docs').select('data').eq('owner', cur.id).eq('kind', 'tdcfg').maybeSingle(); tdAdminCfg = (r.data && r.data.data) || {}; } catch (e) { tdAdminCfg = {}; }
+    if (tab !== 'td') return;
+  }
+  const c = tdCfg();
+  $('#main').innerHTML = `<div class="bar"><h2 style="margin:0">Update Tempering Data</h2><button class="ghost" onclick="tdLoad()">Refresh</button></div>
+    <div class="card"><div class="grid">
+      <div><label for="td-imei">IMEI</label><input id="td-imei" inputmode="numeric" maxlength="15" autocomplete="off" placeholder="15 digit IMEI" onkeydown="if (event.key === 'Enter') tdSend()"></div>
+      ${adm ? `<div><label for="td-veh">Vehicle number</label><input id="td-veh" value="${esc(c.veh)}"></div>
+      <div><label for="td-lat">Lat</label><input id="td-lat" value="${esc(c.lat)}"></div>
+      <div><label for="td-lon">Lon</label><input id="td-lon" value="${esc(c.lon)}"></div>
+      <div><label for="td-ip">Server IP</label><input id="td-ip" value="${esc(c.ip)}"></div>
+      <div><label for="td-port">Port</label><input id="td-port" inputmode="numeric" value="${esc(c.port)}"></div>
+      <div><label for="td-url">send.php address</label><input id="td-url" value="${esc(c.url)}"></div>` : ''}
+    </div>
+    <div class="row-actions" style="margin-top:14px"><button class="btn" id="td-go" onclick="tdSend()">Update</button></div>
+    <div id="td-st" class="warn" style="margin:14px 0 0" role="status">Enter the IMEI and press Update.</div>
+    ${adm ? '<pre id="td-pk" class="small" style="white-space:pre-wrap;word-break:break-all;color:var(--muted);margin:10px 0 0"></pre>' : ''}</div>
+    <div class="card" id="td-list"><div class="empty">Loading…</div></div>`;
+  tdLoad();
+}
+function tdStatus(msg, kind) {
+  const el = $('#td-st'); if (!el) return;
+  el.textContent = msg;
+  el.style.cssText = 'margin:14px 0 0;' + (kind === 'ok' ? 'background:#dcfce7;border-color:#86d9a3;color:#15803d' : kind === 'bad' ? 'background:#fee2e2;border-color:#f0a8a2;color:#b42318' : '');
+}
+async function tdLoad() {
+  try {
+    let q = sb.from('ib_docs').select('owner,data').like('kind', TDK + '%').order('updated_at', {ascending: false}).limit(300);
+    if (cur.role !== 'admin') q = q.eq('owner', cur.id);
+    const r = await q; if (r.error) throw r.error;
+    tdCache = r.data.map(x => Object.assign({}, x.data, {owner: x.owner}));
+  } catch (e) { console.error(e); if ($('#td-list')) $('#td-list').innerHTML = '<div class="warn">Could not load the list. ' + esc(errMsg(e)) + '</div>'; return; }
+  tdDraw();
+}
+function tdDraw() {
+  const el = $('#td-list'); if (!el || tab !== 'td') return;
+  const adm = cur.role === 'admin';
+  const rows = tdCache.map(r => `<tr><td>${esc(fmtD(r.date))}</td><td>${esc(r.time)}</td><td>${esc(r.imei)}</td>${adm ? `<td>${esc(r.by || '')}<div class="small" style="color:var(--muted)">${esc(r.user || '')}</div></td>` : ''}<td><span class="ex ${r.ok ? 'ok' : 'dead'}">${r.ok ? 'Time updated' : 'Failed'}</span>${adm && r.error ? `<div class="small" style="color:var(--muted)">${esc(r.error)}</div>` : ''}</td>${adm ? `<td><button class="ghost danger" onclick="tdDelete('${r.owner}', '${r.id}')">Delete</button></td>` : ''}</tr>`).join('');
+  el.innerHTML = `<h3>${adm ? 'All updates' : 'My updates'}</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Time</th><th>IMEI</th>${adm ? '<th>User</th>' : ''}<th>Status</th>${adm ? '<th></th>' : ''}</tr></thead><tbody>${rows || `<tr><td colspan="${adm ? 6 : 4}" class="empty">No updates yet.</td></tr>`}</tbody></table></div>`;
+}
+async function tdSend() {
+  if (tdSending || !cur || !can('td')) return;
+  const imei = $('#td-imei').value.replace(/\s+/g, '');
+  if (!/^\d{15}$/.test(imei)) { tdStatus('IMEI must be exactly 15 digits.', 'bad'); return; }
+  const adm = cur.role === 'admin', c = adm ? tdFormCfg() : tdCfg();
+  if (!c.ip || !(+c.port > 0 && +c.port < 65536)) { tdStatus('Server IP / port is not set. Ask the Admin.', 'bad'); return; }
+  tdSending = true; $('#td-go').disabled = true; tdStatus('Updating…');
+  if (adm) { tdAdminCfg = c; try { await sb.from('ib_docs').upsert({owner: cur.id, kind: 'tdcfg', data: c, updated_at: new Date().toISOString()}, {onConflict: 'owner,kind'}); } catch (e) { /* ignore */ } }
+  const seq = tdCache.filter(r => r.imei === imei).length + 1, packet = tdPacket(imei, c, seq);
+  if (adm && $('#td-pk')) $('#td-pk').textContent = packet;
+  let ok = false, err = '';
+  try {
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 20000);
+    const r = await fetch(c.url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ip: c.ip, port: +c.port, packet, imei, append_crlf: false, wait_reply: true, timeout: 5}), signal: ctl.signal});
+    clearTimeout(t);
+    const j = await r.json(); ok = !!(j && j.ok); err = ok ? '' : ((j && j.error) || 'Server did not accept the data');
+  } catch (e) { err = e.name === 'AbortError' ? 'Server took too long' : 'Could not reach the server'; }
+  const d = new Date(), z = n => String(n).padStart(2, '0'), id = uid();
+  const log = {id, imei, date: today(), time: z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()), ok, error: err, by: cur.name || cur.username, user: cur.username, created: d.toISOString()};
+  if (adm) { log.ip = c.ip; log.port = c.port; }
+  try {
+    const w = await sb.from('ib_docs').upsert({owner: cur.id, kind: TDK + id, data: log, updated_at: d.toISOString()}, {onConflict: 'owner,kind'}); if (w.error) throw w.error;
+    tdCache.unshift(Object.assign({owner: cur.id}, log)); tdDraw();
+  } catch (e) { console.error(e); toast('Result could not be saved: ' + errMsg(e)); }
+  tdStatus(ok ? 'Time updated successfully (' + log.time + ')' : 'Time update failed: ' + (adm ? err : 'data was not updated. Try again.'), ok ? 'ok' : 'bad');
+  tdSending = false; const b = $('#td-go'); if (b) b.disabled = false;
+}
+async function tdDelete(owner, id) {
+  if (!cur || cur.role !== 'admin') return;
+  if (!confirm('Delete this record? This cannot be undone.')) return;
+  try {
+    const r = await sb.from('ib_docs').delete().eq('owner', owner).eq('kind', TDK + id).select();
+    if (r.error) throw r.error;
+    if (!r.data || !r.data.length) { toast('Not deleted. Supabase policy may not allow Admin to delete this row.'); return; }
+    tdCache = tdCache.filter(x => !(x.id === id && x.owner === owner)); tdDraw(); toast('Record deleted');
+  } catch (e) { console.error(e); toast('Could not delete: ' + errMsg(e)); }
+}
+
 /* ---------- create account (Admin only) ---------- */
 const USERS_KEY = 'billing-users-v1'; // old browser-only accounts (used for moving data)
-const PERMS = [['dash', 'Dashboard'], ['new', 'Create invoice'], ['invoices', 'View invoices'], ['addcust', 'Add customer inside Create invoice'], ['payment', 'Record payments'], ['inv', 'Inventory (view device list)'], ['invadd', 'Inventory: add / edit device manually'], ['invbulk', 'Inventory: bulk upload (Excel / CSV)'], ['recharge', 'Recharge Request (send requests to Admin)'], ['delete', 'Delete single items only (bill, device)']];
+const PERMS = [['dash', 'Dashboard'], ['new', 'Create invoice'], ['invoices', 'View invoices'], ['addcust', 'Add customer inside Create invoice'], ['payment', 'Record payments'], ['inv', 'Inventory (view device list)'], ['invadd', 'Inventory: add / edit device manually'], ['invbulk', 'Inventory: bulk upload (Excel / CSV)'], ['recharge', 'Recharge Request (send requests to Admin)'], ['td', 'Update Tempering Data (IMEI only)'], ['delete', 'Delete single items only (bill, device)']];
 const DEF_PERMS = ['dash', 'new', 'invoices', 'inv', 'payment', 'addcust', 'invadd', 'invbulk', 'recharge'];
 let usersCache = [], usersLoaded = false, billCounts = {}, editU = null;
 async function loadUsers() {
@@ -2065,7 +2163,7 @@ async function renderUsers() {
   }
   const users = usersCache;
   const u = users.find(x => x.id === editU) || {username: '', name: '', phone: '', gstin: '', address: '', prefix: 'INV-', perms: Object.fromEntries(DEF_PERMS.map(k => [k, true]))};
-  const pm = u.perms || {};
+  const pm = u.perms || {}, tdc = Object.assign({}, TD_DEF, pm._td || {});
   const oAdmin = oldData(KEY), oUsers = oldUsers();
   const hasOld = !viewing() && ((oAdmin && (oldBills(oAdmin) || (oAdmin.products || []).length || (oAdmin.customers || []).length)) || oUsers.length);
   $('#main').innerHTML = `
@@ -2089,6 +2187,15 @@ async function renderUsers() {
       </div>
       <div class="sec">Rights (what this user can do)</div>
       <div class="perms">${PERMS.map(([k, l]) => `<label><input type="checkbox" id="pm-${k}" ${pv(pm, k) ? 'checked' : ''}>${l}</label>`).join('')}</div>
+      <div class="sec">Tempering Data settings (hidden from this user, they only enter IMEI)</div>
+      <div class="grid">
+        <div><label for="td-ip">Server IP</label><input id="td-ip" value="${esc(tdc.ip)}"></div>
+        <div><label for="td-port">Port</label><input id="td-port" inputmode="numeric" value="${esc(tdc.port)}"></div>
+        <div><label for="td-lat">Lat</label><input id="td-lat" value="${esc(tdc.lat)}"></div>
+        <div><label for="td-lon">Lon</label><input id="td-lon" value="${esc(tdc.lon)}"></div>
+        <div><label for="td-veh">Vehicle number</label><input id="td-veh" value="${esc(tdc.veh)}"></div>
+        <div><label for="td-url">send.php address</label><input id="td-url" value="${esc(tdc.url)}"></div>
+      </div>
       <div class="row-actions" style="margin-top:16px">
         <button class="btn" id="usave" onclick="saveUser()">${editU ? 'Update account' : 'Create account'}</button>
         ${editU ? '<button class="ghost" onclick="editU = null; tmpLogo = \'\'; renderUsers()">Cancel</button>' : ''}
@@ -2133,7 +2240,7 @@ async function saveUser() {
   if (!name) { toast('Enter the company name.'); return; }
   const perms = {}; PERMS.forEach(([k]) => perms[k] = $('#pm-' + k).checked);
   if (!Object.values(perms).some(Boolean)) { toast('Give at least one right.'); return; }
-  const data = {name, phone: $('#uph').value.trim(), gstin: $('#ug').value.trim().toUpperCase(), address: $('#ua').value.trim(), logo: tmpLogo, perms};
+  const data = {name, phone: $('#uph').value.trim(), gstin: $('#ug').value.trim().toUpperCase(), address: $('#ua').value.trim(), logo: tmpLogo, perms: Object.assign({}, perms, {_td: tdFormCfg()})};
   const btn = $('#usave'); btn.disabled = true;
   try {
     if (editU) {
