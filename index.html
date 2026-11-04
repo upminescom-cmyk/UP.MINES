@@ -1864,10 +1864,11 @@ async function rrFetch(own) {
 }
 async function submitRR() {
   if (!cur || cur.role !== 'user' || !can('rr')) return;
-  const client = $('#rr-name').value.trim(), phone = $('#rr-phone').value.replace(/[\s-]/g, ''), plan = $('#rr-plan').value;
+  const client = $('#rr-name').value.trim(), vehicle = normVeh($('#rr-veh').value), phone = $('#rr-phone').value.replace(/[\s-]/g, ''), plan = $('#rr-plan').value;
   const iccid = $('#rr-iccid').value.replace(/\s+/g, ''), imei = $('#rr-imei').value.replace(/\s+/g, '');
   if (!client) { toast('Enter the client name.'); return; }
   if (!/^\+?\d{10,13}$/.test(phone)) { toast('Enter a valid client number (10 digits).'); return; }
+  if (!vehicle) { toast('Enter the vehicle number.'); return; }
   if (!plan) { toast('Select the recharge plan.'); return; }
   if (!okIccid(iccid)) { toast('SIM ICCID must be 18 to 22 digits.'); return; }
   if (!okImei15(imei)) { toast('IMEI must be 15 digits.'); return; }
@@ -1877,7 +1878,7 @@ async function submitRR() {
   try {
     const mine = await rrFetch(true);
     if (mine.some(r => r.imei === imei && r.status === 'Pending')) { toast('A request for this IMEI is already waiting for Admin.'); return; }
-    const r = {id: uid(), owner: cur.id, by: cur.name || cur.username, user: cur.username, client, phone, plan, iccid, imei, hasImg: !!rrImg, status: 'Pending', created: new Date().toISOString(), expiry: '', decided: '', note: ''};
+    const r = {id: uid(), owner: cur.id, by: cur.name || cur.username, user: cur.username, client, phone, vehicle, plan, iccid, imei, hasImg: !!rrImg, status: 'Pending', created: new Date().toISOString(), expiry: '', decided: '', note: ''};
     if (rrImg) { const w = await sb.from('ib_docs').upsert({owner: cur.id, kind: RI + r.id, data: {img: rrImg}, updated_at: new Date().toISOString()}, {onConflict: 'owner,kind'}); if (w.error) throw w.error; }
     const w2 = await sb.from('ib_docs').upsert(reqRow(r), {onConflict: 'owner,kind'}); if (w2.error) throw w2.error;
     toast('Request sent to Admin.'); rrImg = ''; renderRR();
@@ -1893,6 +1894,7 @@ async function renderRR() {
       <div class="grid">
         <div><label for="rr-name">Client name</label><input id="rr-name" autocomplete="off"></div>
         <div><label for="rr-phone">Client number</label><input id="rr-phone" inputmode="tel" autocomplete="off"></div>
+        <div><label for="rr-veh">Vehicle number</label><input id="rr-veh" autocomplete="off" placeholder="e.g. BR01AB1234" style="text-transform:uppercase"></div>
         <div><label for="rr-plan">Recharge plan</label><select id="rr-plan"><option value="">Select plan</option>${PLANS.map(x => `<option>${x}</option>`).join('')}</select></div>
         <div><label for="rr-iccid">SIM ICCID number</label><input id="rr-iccid" inputmode="numeric" autocomplete="off" placeholder="Starts with 899"></div>
         <div><label for="rr-imei">IMEI number</label><input id="rr-imei" inputmode="numeric" autocomplete="off" placeholder="Starts with 86 or 359926"></div>
@@ -1909,18 +1911,18 @@ function drawRRList() {
   let list = rrCache.slice();
   if (adm && rrFilter) list = list.filter(r => r.status === rrFilter);
   const pill = r => `<span class="ex ${RR_CLS[r.status] || ''}">${r.status === 'Pending' && !adm ? 'Pending approval' : esc(r.status)}</span>${r.note ? `<div class="small" style="color:var(--muted)">${esc(r.note)}</div>` : ''}`;
-  const head = adm ? '<th>Date</th><th>From</th><th>Client</th><th>Plan</th><th>IMEI / SIM ICCID</th><th>Image</th><th>Status / Action</th>' : '<th>Date</th><th>Client</th><th>Plan</th><th>IMEI / SIM ICCID</th><th>Status</th><th>Vehicle expiry</th>';
+  const head = adm ? '<th>Date</th><th>From</th><th>Client</th><th>Vehicle number</th><th>Plan</th><th>IMEI / SIM ICCID</th><th>Image</th><th>Status / Action</th>' : '<th>Date</th><th>Client</th><th>Vehicle number</th><th>Plan</th><th>IMEI / SIM ICCID</th><th>Status</th><th>Vehicle expiry</th>';
   const rows = list.map(r => {
     const ids = `${esc(r.imei)}<div class="small" style="color:var(--muted)">${esc(r.iccid)}</div>`, cl = `${esc(r.client)}<div class="small" style="color:var(--muted)">${esc(r.phone)}</div>`;
-    if (!adm) return `<tr><td>${d(r.created)}</td><td>${cl}</td><td>${esc(r.plan)}</td><td>${ids}</td><td>${pill(r)}</td><td>${r.status === 'Active' ? d(r.expiry) : ''}</td></tr>`;
+    if (!adm) return `<tr><td>${d(r.created)}</td><td>${cl}</td><td><b>${esc(r.vehicle || '')}</b></td><td>${esc(r.plan)}</td><td>${ids}</td><td>${pill(r)}</td><td>${r.status === 'Active' ? d(r.expiry) : ''}</td></tr>`;
     const act = r.status === 'Pending'
       ? `<div class="rr-act"><label for="rx-${r.id}" style="margin:0">Vehicle expiry date</label><input id="rx-${r.id}" type="date"><div class="row-actions"><button class="btn" onclick="approveRR('${r.id}')">Approve</button><button class="ghost danger" onclick="rejectRR('${r.id}')">Reject</button></div></div>`
       : `${pill(r)}${r.status === 'Active' ? `<div class="small">Expiry: ${d(r.expiry)}</div>` : ''}`;
-    return `<tr><td>${d(r.created)}</td><td>${esc(r.by)}<div class="small" style="color:var(--muted)">${esc(r.user)}</div></td><td>${cl}</td><td>${esc(r.plan)}</td><td>${ids}</td><td>${r.hasImg ? `<button class="ghost" onclick="viewRRImg('${r.id}')">View</button>` : ''}</td><td>${act}</td></tr>`;
+    return `<tr><td>${d(r.created)}</td><td>${esc(r.by)}<div class="small" style="color:var(--muted)">${esc(r.user)}</div></td><td>${cl}</td><td><b>${esc(r.vehicle || '')}</b></td><td>${esc(r.plan)}</td><td>${ids}</td><td>${r.hasImg ? `<button class="ghost" onclick="viewRRImg('${r.id}')">View</button>` : ''}</td><td>${act}</td></tr>`;
   }).join('');
   const filt = adm ? `<select style="width:auto" onchange="rrFilter = this.value; drawRRList()" aria-label="Filter">${[['Pending', 'Pending'], ['Active', 'Active'], ['Rejected', 'Rejected'], ['', 'All']].map(([v, l]) => `<option value="${v}" ${rrFilter === v ? 'selected' : ''}>${l}</option>`).join('')}</select>` : '';
   el.innerHTML = `<div class="bar"><h3 style="margin:0">${adm ? 'Requests from users' : 'My requests'}</h3>${filt}</div>
-    <div class="scroll"><table><thead><tr>${head}</tr></thead><tbody>${rows || `<tr><td colspan="${adm ? 7 : 6}" class="empty">${adm ? 'No requests here.' : 'No requests yet.'}</td></tr>`}</tbody></table></div>`;
+    <div class="scroll"><table><thead><tr>${head}</tr></thead><tbody>${rows || `<tr><td colspan="${adm ? 8 : 7}" class="empty">${adm ? 'No requests here.' : 'No requests yet.'}</td></tr>`}</tbody></table></div>`;
 }
 async function viewRRImg(id) {
   const r = rrCache.find(x => x.id === id); if (!r) return;
@@ -1935,7 +1937,7 @@ async function viewRRImg(id) {
 async function addDeviceToOwner(owner, dev) {
   const merge = list => {
     const ex = list.find(x => x.imei === dev.imei);
-    if (ex) { ex.expiry = dev.expiry; ex.plan = dev.plan; ex.iccid = dev.iccid || ex.iccid || ''; if (!ex.name) ex.name = dev.name; if (!ex.phone) ex.phone = dev.phone; }
+    if (ex) { ex.expiry = dev.expiry; ex.plan = dev.plan; ex.iccid = dev.iccid || ex.iccid || ''; if (!ex.name) ex.name = dev.name; if (!ex.phone) ex.phone = dev.phone; if (!ex.vehicle) ex.vehicle = dev.vehicle; }
     else list.unshift(dev);
   };
   if (acct && acct.id === owner) { merge(db.devices); save(); return; } // Admin has this account open right now
@@ -1953,7 +1955,7 @@ async function approveRR(id) {
   if (!exp) { toast('Enter the Vehicle expiry date first.'); return; }
   rrAct = true;
   try {
-    await addDeviceToOwner(r.owner, {id: uid(), imei: r.imei, iccid: r.iccid, vehicle: '', name: r.client, phone: r.phone, plan: r.plan, expiry: exp});
+    await addDeviceToOwner(r.owner, {id: uid(), imei: r.imei, iccid: r.iccid, vehicle: r.vehicle || '', name: r.client, phone: r.phone, plan: r.plan, expiry: exp});
     Object.assign(r, {status: 'Active', expiry: exp, decided: new Date().toISOString(), note: ''});
     const w = await sb.from('ib_docs').upsert(reqRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error;
     toast('Approved. The device is added to ' + (r.by || 'the user') + "'s inventory."); pollReq(true);
@@ -1982,8 +1984,8 @@ async function reconcileDevices(list) { // approved request -> make sure the dev
   for (const r of list) {
     if (r.status !== 'Active' || r.invDone) continue;
     const dv = db.devices.find(x => x.imei === r.imei);
-    if (!dv) { db.devices.unshift({id: uid(), imei: r.imei, iccid: r.iccid, vehicle: '', name: r.client, phone: r.phone, plan: r.plan, expiry: r.expiry}); changed = true; }
-    else if (dv.expiry !== r.expiry || dv.plan !== r.plan || !dv.iccid) { Object.assign(dv, {expiry: r.expiry, plan: r.plan, iccid: dv.iccid || r.iccid}); changed = true; }
+    if (!dv) { db.devices.unshift({id: uid(), imei: r.imei, iccid: r.iccid, vehicle: r.vehicle || '', name: r.client, phone: r.phone, plan: r.plan, expiry: r.expiry}); changed = true; }
+    else if (dv.expiry !== r.expiry || dv.plan !== r.plan || !dv.iccid || (!dv.vehicle && r.vehicle)) { Object.assign(dv, {expiry: r.expiry, plan: r.plan, iccid: dv.iccid || r.iccid, vehicle: dv.vehicle || r.vehicle || ''}); changed = true; }
     r.invDone = true;
     try { await sb.from('ib_docs').upsert(reqRow(r), {onConflict: 'owner,kind'}); } catch (e) { /* will retry next time */ }
   }
