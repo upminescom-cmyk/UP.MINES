@@ -277,6 +277,12 @@ th{background:#f8fafc}
 .ex{font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:#eef1f4;color:var(--muted);white-space:nowrap}
 .ex.ok{background:#dcfce7;color:#15803d}.ex.soon{background:#fef3c7;color:#b45309}.ex.dead{background:#fee2e2;color:#b42318}
 @media(max-width:640px){.gps{grid-template-columns:1fr}}
+aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6px;border-radius:99px;background:#e5484d;color:#fff;font-size:12px;font-weight:700;text-align:center;line-height:20px}
+.rr-img{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rr-img img{max-width:140px;max-height:100px;border:1px solid var(--line);border-radius:8px;background:#fff;object-fit:contain}
+.rr-note{font-size:13px;min-height:1.3em;margin-top:6px;color:var(--accent-dark)}
+.rr-note.bad{color:var(--danger)}
+.rr-act{display:grid;gap:6px;min-width:190px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
 </head>
@@ -309,13 +315,11 @@ th{background:#f8fafc}
     <h1 id="brand">Billing</h1>
     <div id="viewbar" hidden></div>
     <button data-tab="dash">Dashboard</button>
-    <button data-tab="new">New invoice</button>
-    <button data-tab="est">Estimate / Quotation</button>
-    <button data-tab="invoices">Invoices</button>
-    <button data-tab="daybook">Day Book</button>
-    <button data-tab="old">Old Invoices</button>
-    <button data-tab="products">Products</button>
+    <button data-tab="new">Create invoice</button>
+    <button data-tab="invoices">Invoice</button>
     <button data-tab="inv">Inventory</button>
+    <button data-tab="rr">Recharge Request</button>
+    <button data-tab="products">Products</button>
     <button data-tab="customers">Customers</button>
     <button data-tab="acc">Account details</button>
     <button data-tab="wa">WhatsApp settings</button>
@@ -492,7 +496,7 @@ async function getSig(owner) { // cheap fingerprint of what is online (no big da
 function refreshView() {
   const ae = document.activeElement;
   if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return; // do not disturb typing
-  if (['dash', 'invoices', 'old', 'inv', 'products', 'customers'].includes(tab) && !(tab === 'inv' && editD)) go(tab);
+  if (['dash', 'invoices', 'inv', 'products', 'customers'].includes(tab) && !(tab === 'inv' && editD)) go(tab);
 }
 async function checkRemote(quiet) {
   if (checking || !cur || !acct || dirty || syncing || document.hidden) return;
@@ -534,11 +538,12 @@ const lineAmt = it => (+it.qty || 0) * (+it.price || 0);
 
 /* ---------- navigation ---------- */
 let tab = 'dash';
-const TABS = ['dash', 'new', 'est', 'invoices', 'daybook', 'acc', 'wa', 'old', 'products', 'inv', 'customers', 'settings', 'users'];
-const PMAP = {est: 'new', daybook: 'invoices', acc: 'settings', wa: 'settings'};
-const NEWP = {addcust: 'customers', invadd: 'inv', invbulk: 'inv'}; // new rights follow the old right until Admin saves the account
+const TABS = ['dash', 'new', 'invoices', 'inv', 'rr', 'products', 'customers', 'acc', 'wa', 'settings', 'users'];
+const ADMIN_ONLY = ['products', 'customers', 'acc', 'wa', 'settings', 'users']; // normal users see only: Dashboard, Create invoice, Invoice, Inventory, Recharge Request
+const PMAP = {acc: 'settings', wa: 'settings', rr: 'recharge'};
+const NEWP = {addcust: 'customers', invadd: 'inv', invbulk: 'inv', recharge: 'new'}; // new rights follow the old right until Admin saves the account
 const pv = (m, k) => m[k] !== undefined || !NEWP[k] ? m[k] : m[NEWP[k]];
-const can = p => (p = PMAP[p] || p, !!cur) && (cur.role === 'admin' || (p !== 'users' && !!pv(cur.perms || {}, p)));
+const can = p => { const o = p; p = PMAP[p] || p; if (!cur) return false; if (cur.role === 'admin') return true; if (p === 'users' || ADMIN_ONLY.includes(o)) return false; return !!pv(cur.perms || {}, p); };
 const firstTab = () => TABS.find(can);
 function applyNav() { document.querySelectorAll('aside button[data-tab]').forEach(b => b.hidden = !can(b.dataset.tab)); }
 function go(t) {
@@ -550,7 +555,7 @@ function go(t) {
   if (t !== tab) { tmpLogo = ''; editU = null; editB = null; qc = false; }
   tab = t;
   document.querySelectorAll('aside button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ({new: renderNew, invoices: renderInvoices, products: renderProducts, customers: renderCustomers, settings: renderSettings, old: renderOld, dash: renderDash, users: renderUsers, inv: renderInventory, est: renderEst, daybook: renderDayBook, acc: renderAccount, wa: renderWa})[t]();
+  ({new: renderNew, invoices: renderInvoices, products: renderProducts, customers: renderCustomers, settings: renderSettings, dash: renderDash, users: renderUsers, inv: renderInventory, rr: renderRR, acc: renderAccount, wa: renderWa})[t]();
   $('#brand').textContent = defBiz().name || 'Billing';
   window.scrollTo(0, 0);
 }
@@ -591,7 +596,7 @@ function renderNew() {
     </tr>`;
   }).join('');
   $('#main').innerHTML = `
-    <h2>New invoice</h2>
+    <h2>Create invoice</h2>
     <div class="card">
       <div class="grid">
         <div><label for="bz">Business (GST)</label>
@@ -603,7 +608,6 @@ function renderNew() {
           </select>
           ${custTools(d)}</div>
         <div><label for="dt">Date</label><input id="dt" type="date" value="${esc(d.date)}" onchange="draft.date = this.value"></div>
-        <div><label for="ds">Discount (%)</label><input id="ds" type="number" min="0" max="100" step="any" value="${esc(d.discount)}" oninput="draft.discount = this.value; updateTotals()"></div>
       </div>
     </div>
     <div class="card">
@@ -616,7 +620,6 @@ function renderNew() {
       <div style="margin-top:10px"><button class="ghost" onclick="addRow()">Add item</button></div>
       <div class="totals">
         <div><span>Subtotal</span><span id="t-sub"></span></div>
-        <div><span>Discount</span><span id="t-disc"></span></div>
         <div><span>Tax</span><span id="t-tax"></span></div>
         <div><span><label style="display:inline;margin:0"><input type="checkbox" style="width:auto" ${d.round ? 'checked' : ''} onchange="draft.round = this.checked; updateTotals()"> Round off</label></span><span id="t-ro"></span></div>
         <div class="grand"><span>Total</span><span id="t-total"></span></div>
@@ -639,7 +642,7 @@ function renderNew() {
       <label for="nt">Note on invoice (optional)</label>
       <textarea id="nt" rows="2" oninput="draft.note = this.value">${esc(d.note)}</textarea>
     </div>
-    <div class="row-actions"><button class="btn" onclick="saveInvoice()">Save invoice</button><button class="ghost" onclick="saveEstimate()">Save as Estimate</button></div>`;
+    <div class="row-actions"><button class="btn" onclick="saveInvoice()">Save invoice</button></div>`;
   updateTotals();
 }
 function updateTotals() {
@@ -651,7 +654,6 @@ function updateTotals() {
   $('#t-bal').textContent = money(t.total - rcv);
   ['credit', 'cash'].forEach(m => { const b = $('#m-' + m); if (b) b.style.cssText = draft.mode === m ? 'background:var(--accent);color:#fff' : ''; });
   $('#t-sub').textContent = money(t.sub);
-  $('#t-disc').textContent = '− ' + money(t.disc);
   $('#t-tax').textContent = money(t.tax);
   $('#t-total').textContent = money(t.total);
 }
@@ -731,53 +733,6 @@ async function saveInvoice() {
   toast('Invoice ' + inv.no + ' saved');
   renderNew();
   showInvoice(inv.id);
-}
-
-
-/* ---------- estimate / quotation ---------- */
-function draftItems() { return draft.items.filter(it => it.name.trim() && +it.qty > 0).map(it => { const x = {name: it.name.trim(), qty: +it.qty, price: +it.price || 0, tax: +it.tax || 0}; if (it.kind === 'gps') Object.assign(x, {gps: true, imei: it.imei.trim(), vehicle: normVeh(it.vehicle), imeis: it.imei.trim() ? [it.imei.trim()] : []}); return x; }); }
-function saveEstimate() {
-  const items = draftItems();
-  if (!items.length) { toast('Add at least one item with a name and quantity.'); return; }
-  const c = db.customers.find(x => x.id === draft.customerId);
-  const list = db.estimates = db.estimates || [];
-  const e = {id: uid(), no: 'EST-' + String(list.length + 1).padStart(4, '0'), date: draft.date || today(), customer: c ? {name: c.name, phone: c.phone, address: c.address, gstin: c.gstin} : {name: 'Walk-in customer'}, customerId: draft.customerId, items, discount: +draft.discount || 0, round: draft.round, note: draft.note, biz: bizSnap(draft.bizId), status: 'Open', payments: []};
-  e.totals = calc(items, e.discount, e.round);
-  list.unshift(e); save(); draft = newDraft(); toast('Estimate ' + e.no + ' saved'); go('est');
-}
-function renderEst() {
-  const l = db.estimates || [], tot = l.reduce((a, e) => a + e.totals.total, 0), conv = l.filter(e => e.status === 'Converted').reduce((a, e) => a + e.totals.total, 0);
-  $('#main').innerHTML = `<div class="bar"><h2 style="margin:0">Estimate / Quotation</h2><button class="btn" onclick="draft = newDraft(); go('new')">+ Add Estimate</button></div>
-    <div class="card"><div class="grid"><div><label>Total quotations</label><b>${money(tot)}</b></div><div><label>Converted</label><b>${money(conv)}</b></div><div><label>Open</label><b>${money(tot - conv)}</b></div></div></div>
-    <div class="card"><div class="scroll"><table><thead><tr><th>No.</th><th>Date</th><th>Party</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead><tbody>
-    ${l.length ? l.map(e => `<tr><td>${esc(e.no)}</td><td>${esc(e.date)}</td><td>${esc(e.customer.name)}</td><td class="num">${money(e.totals.total)}</td><td>${e.status === 'Converted' ? 'Converted → ' + esc(e.invNo) : 'Open'}</td><td><div class="row-actions"><button class="ghost" onclick="viewEst('${e.id}')">View</button>${e.status === 'Open' ? `<button class="ghost" onclick="convertEst('${e.id}')">Convert to Invoice</button>` : ''}${can('delete') ? `<button class="ghost danger" onclick="delEst('${e.id}')">Delete</button>` : ''}</div></td></tr>`).join('') : '<tr><td colspan="6" class="empty">No estimates yet.</td></tr>'}
-    </tbody></table></div></div>`;
-}
-function viewEst(id) { const e = db.estimates.find(x => x.id === id); if (!e) return; printName = e.no; curDoc = {d: e, est: true}; $('#sheet').innerHTML = invoiceHTML(e, 'Estimate'); $('#viewer').hidden = false; applyDesign(true); }
-function convertEst(id) {
-  const e = db.estimates.find(x => x.id === id); if (!e) return;
-  draft = newDraft(); Object.assign(draft, {bizId: db.businesses.some(b => b.id === (e.biz && e.biz.id)) ? e.biz.id : db.defaultBiz, customerId: e.customerId || '', discount: e.discount, round: e.round !== false, note: e.note || '', fromEst: id,
-    items: e.items.map(it => ({kind: it.gps ? 'gps' : 'other', pid: '', name: it.name, qty: it.qty, price: it.price, tax: it.tax, priced: true, imei: it.imei || '', vehicle: it.vehicle || ''}))});
-  go('new'); toast('Estimate loaded. Check IMEI and vehicle number, then save the invoice.');
-}
-function delEst(id) { if (!confirm('Delete this estimate?')) return; db.estimates = db.estimates.filter(x => x.id !== id); save(); renderEst(); }
-
-/* ---------- day book ---------- */
-let dbFrom = '', dbTo = '';
-function renderDayBook() {
-  if (!dbFrom) dbFrom = dbTo = today();
-  const rows = [];
-  db.invoices.forEach(i => {
-    if (i.date >= dbFrom && i.date <= dbTo) rows.push({d: i.date, ref: i.no, name: i.customer.name, type: 'Sale', amt: i.totals.total, paid: 0});
-    (i.payments || []).forEach(p => { if (p.date >= dbFrom && p.date <= dbTo) rows.push({d: p.date, ref: p.id, name: i.customer.name, type: 'Payment-In (' + i.no + ')', amt: 0, paid: p.amount}); });
-  });
-  rows.sort((a, b) => a.d < b.d ? 1 : a.d > b.d ? -1 : 0);
-  const sale = rows.reduce((a, r) => a + r.amt, 0), rcv = rows.reduce((a, r) => a + r.paid, 0);
-  $('#main').innerHTML = `<div class="bar"><h2 style="margin:0">Day Book</h2><div class="row-actions"><input type="date" value="${dbFrom}" onchange="dbFrom = this.value; renderDayBook()"><input type="date" value="${dbTo}" onchange="dbTo = this.value; renderDayBook()"></div></div>
-    <div class="card"><div class="grid"><div><label>Total sale</label><b>${money(sale)}</b></div><div><label>Money in</label><b>${money(rcv)}</b></div></div></div>
-    <div class="card"><div class="scroll"><table><thead><tr><th>Date</th><th>Ref</th><th>Party</th><th>Type</th><th class="num">Sale</th><th class="num">Money in</th></tr></thead><tbody>
-    ${rows.length ? rows.map(r => `<tr><td>${esc(r.d)}</td><td>${esc(r.ref)}</td><td>${esc(r.name)}</td><td>${esc(r.type)}</td><td class="num">${r.amt ? money(r.amt) : ''}</td><td class="num">${r.paid ? money(r.paid) : ''}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No transactions in this period.</td></tr>'}
-    </tbody></table></div></div>`;
 }
 
 
@@ -985,7 +940,7 @@ function showOld(id) {
 let invQuery = '';
 function renderInvoices() {
   $('#main').innerHTML = `
-    <div class="bar"><h2 style="margin:0">Invoices</h2>
+    <div class="bar"><h2 style="margin:0">Invoice</h2>
       <input id="q" style="max-width:240px" placeholder="Search bill no., customer or IMEI" value="${esc(invQuery)}" oninput="invQuery = this.value; drawInvoiceRows()"></div>
     <div class="card"><div class="scroll"><table>
       <thead><tr><th>No.</th><th>Date</th><th>Customer</th><th class="num">Total</th><th class="num">Due</th><th>Payment</th><th></th></tr></thead>
@@ -997,7 +952,7 @@ function drawInvoiceRows() {
   const q = invQuery.toLowerCase();
   const list = db.invoices.filter(i => !i.orig && (!q || i.no.toLowerCase().includes(q) || (i.customer.name || '').toLowerCase().includes(q) || (i.items || []).some(it => (it.imeis || []).some(m => String(m).toLowerCase().includes(q)))));
   $('#inv-rows').innerHTML = list.length ? list.map(i => invRow(i, can('delete') ? 'delInvoice' : '')).join('')
-    : `<tr><td colspan="7" class="empty">No invoices yet. Create one from New invoice.</td></tr>`;
+    : `<tr><td colspan="7" class="empty">No invoices yet. Create one from Create invoice.</td></tr>`;
   const sum = list.reduce((a, i) => a + i.totals.total, 0), due = list.reduce((a, i) => a + dueOf(i), 0);
   $('#inv-sum').textContent = list.length ? `${list.length} invoice(s), total ${money(sum)}, due ${money(due)}` : '';
 }
@@ -1062,7 +1017,7 @@ function renderCustomers() {
         <button class="btn" onclick="saveCustomer()">${editC ? 'Update customer' : 'Add customer'}</button>
         ${editC || custBack ? '<button class="ghost" onclick="cancelCust()">Cancel</button>' : ''}
       </div></div>
-    <div class="small" style="color:var(--muted)">Saved customers are shown in <b>New invoice</b>, in the Customer dropdown. Select one there to edit or delete it.</div>`;
+    <div class="small" style="color:var(--muted)">Saved customers are shown in <b>Create invoice</b>, in the Customer dropdown. Select one there to edit or delete it.</div>`;
 }
 function saveCustomer() {
   const name = $('#cn').value.trim();
@@ -1216,7 +1171,7 @@ function devStatus() {
 }
 function openDev(f) { if (!can('inv')) return; devF = f; devQ = ''; editD = null; go('inv'); }
 function renderInventory() {
-  const d = db.devices.find(x => x.id === editD) || {imei: '', vehicle: '', name: '', phone: '', expiry: ''};
+  const d = db.devices.find(x => x.id === editD) || {imei: '', vehicle: '', name: '', phone: '', expiry: '', iccid: '', plan: ''};
   $('#main').innerHTML = `<h2>Inventory</h2>
     <div class="card">${devStatus()}</div>
     ${can('invadd') ? `<div class="card"><h3>${editD ? 'Edit device' : 'Add device'}</h3>
@@ -1225,31 +1180,33 @@ function renderInventory() {
         <div><label for="dv2">Vehicle number</label><input id="dv2" value="${esc(d.vehicle)}" placeholder="e.g. BR01AB1234" style="text-transform:uppercase"></div>
         <div><label for="dv3">Name</label><input id="dv3" value="${esc(d.name)}" placeholder="Customer / owner name"></div>
         <div><label for="dv4">Connect number</label><input id="dv4" inputmode="tel" value="${esc(d.phone)}" placeholder="SIM / mobile number"></div>
-        <div><label for="dv5">Vehicle expire</label><input id="dv5" type="date" value="${esc(d.expiry)}"></div>
+        <div><label for="dv5">Vehicle expiry</label><input id="dv5" type="date" value="${esc(d.expiry)}"></div>
+        <div><label for="dv6">SIM ICCID number</label><input id="dv6" inputmode="numeric" value="${esc(d.iccid || '')}" placeholder="19 or 20 digits"></div>
+        <div><label for="dv7">Recharge plan</label><select id="dv7"><option value="">Not set</option>${PLANS.map(x => `<option ${d.plan === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
       </div>
       <div class="row-actions" style="margin-top:12px"><button class="btn" onclick="saveDevice()">${editD ? 'Update device' : 'Add device'}</button>${editD ? '<button class="ghost" onclick="editD = null; renderInventory()">Cancel</button>' : ''}</div></div>` : ''}
     ${can('invbulk') ? `<div class="card"><h3>Bulk upload</h3>
-      <p style="margin-top:0;color:var(--muted)">Upload an Excel (.xlsx, .xls) or CSV file with the columns <b>IMEI</b>, <b>Vehicle number</b>, <b>Name</b>, <b>Connect number</b> and <b>Vehicle expire</b> (date as DD-MM-YYYY). Format the IMEI column as Text in Excel.</p>
+      <p style="margin-top:0;color:var(--muted)">Upload an Excel (.xlsx, .xls) or CSV file with the columns <b>IMEI</b>, <b>Vehicle number</b>, <b>Name</b>, <b>Connect number</b>, <b>Vehicle expiry</b> (date as DD-MM-YYYY), and optionally <b>SIM ICCID</b> and <b>Recharge plan</b>. Format the IMEI and ICCID columns as Text in Excel.</p>
       <div class="grid">
         <div><label for="dvf">Excel / CSV file</label><input id="dvf" type="file" accept=".xlsx,.xls,.csv,.txt" onchange="importDevices(this.files[0]); this.value = ''"></div>
         <div><label for="dvm">If the IMEI already exists</label><select id="dvm"><option value="skip">Skip it</option><option value="update">Update its details</option></select></div>
       </div>
       <div class="row-actions" style="margin-top:12px"><button class="ghost" onclick="downloadTemplate()">Download Excel template</button></div></div>` : ''}
     <div class="card"><div class="bar"><h3 style="margin:0">All devices</h3>
-      <div class="row-actions"><input style="max-width:250px" placeholder="Search IMEI, vehicle, name, number" value="${esc(devQ)}" oninput="devQ = this.value; drawDevRows()" aria-label="Search devices">
+      <div class="row-actions"><input style="max-width:250px" placeholder="Search IMEI, ICCID, vehicle, name, number" value="${esc(devQ)}" oninput="devQ = this.value; drawDevRows()" aria-label="Search devices">
         <select style="width:auto" onchange="devF = this.value; drawDevRows()" aria-label="Filter">${[['', 'All'], ['ok', 'Active'], ['soon', 'Expiring soon'], ['dead', 'Expired']].map(([v, l]) => `<option value="${v}" ${devF === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <button class="ghost" onclick="exportDevices()">Download list</button></div></div>
-      <div class="scroll"><table><thead><tr><th>IMEI</th><th>Vehicle number</th><th>Name</th><th>Connect number</th><th>Vehicle expire</th><th></th></tr></thead><tbody id="dvRows"></tbody></table></div>
+      <div class="scroll"><table><thead><tr><th>IMEI</th><th>SIM ICCID</th><th>Vehicle number</th><th>Name</th><th>Connect number</th><th>Plan</th><th>Vehicle expiry</th><th></th></tr></thead><tbody id="dvRows"></tbody></table></div>
       <div class="small" id="dvCount" style="color:var(--muted);margin-top:8px"></div></div>`;
   drawDevRows();
 }
 function drawDevRows() {
   const q = devQ.trim().toLowerCase();
-  const list = db.devices.filter(d => (!devF || expState(d.expiry).k === devF) && (!q || [d.imei, d.vehicle, d.name, d.phone].some(v => String(v || '').toLowerCase().includes(q))));
+  const list = db.devices.filter(d => (!devF || expState(d.expiry).k === devF) && (!q || [d.imei, d.iccid, d.vehicle, d.name, d.phone].some(v => String(v || '').toLowerCase().includes(q))));
   $('#dvRows').innerHTML = list.length ? list.slice(0, 300).map(d => { const st = expState(d.expiry);
-    return `<tr><td>${esc(d.imei)}</td><td><b>${esc(d.vehicle)}</b></td><td>${esc(d.name)}</td><td>${esc(d.phone)}</td><td>${d.expiry ? fmtD(d.expiry) + ' ' : ''}<span class="ex ${st.k}">${st.t}</span></td>
+    return `<tr><td>${esc(d.imei)}</td><td>${esc(d.iccid || '')}</td><td><b>${esc(d.vehicle)}</b></td><td>${esc(d.name)}</td><td>${esc(d.phone)}</td><td>${esc(d.plan || '')}</td><td>${d.expiry ? fmtD(d.expiry) + ' ' : ''}<span class="ex ${st.k}">${st.t}</span></td>
       <td><div class="row-actions">${can('invadd') ? `<button class="ghost" onclick="editDevice('${d.id}')">Edit</button>` : ''}${can('delete') ? `<button class="ghost danger" onclick="delDevice('${d.id}')">Delete</button>` : ''}</div></td></tr>`; }).join('')
-    : '<tr><td colspan="6" class="empty">No devices here yet.</td></tr>';
+    : '<tr><td colspan="8" class="empty">No devices here yet.</td></tr>';
   $('#dvCount').textContent = db.devices.length ? 'Showing ' + Math.min(list.length, 300) + ' of ' + list.length + ' device(s)' + (list.length > 300 ? '. Use search to narrow down.' : '') : '';
 }
 function editDevice(id) { if (!can('invadd')) return; editD = id; renderInventory(); window.scrollTo(0, 0); }
@@ -1258,7 +1215,9 @@ function saveDevice() {
   const imei = $('#dv1').value.trim().replace(/\s+/g, '');
   if (!okImei(imei)) { toast('Enter a valid IMEI (8 to 20 digits).'); return; }
   if (db.devices.some(x => x.imei === imei && x.id !== editD)) { toast('This IMEI is already in inventory.'); return; }
-  const data = {imei, vehicle: normVeh($('#dv2').value), name: $('#dv3').value.trim(), phone: $('#dv4').value.trim(), expiry: $('#dv5').value};
+  const iccid = $('#dv6').value.trim().replace(/\s+/g, '');
+  if (iccid && !/^\d{18,22}$/.test(iccid)) { toast('SIM ICCID must be 18 to 22 digits.'); return; }
+  const data = {imei, vehicle: normVeh($('#dv2').value), name: $('#dv3').value.trim(), phone: $('#dv4').value.trim(), expiry: $('#dv5').value, iccid, plan: $('#dv7').value};
   const was = editD;
   if (was) Object.assign(db.devices.find(x => x.id === was), data); else db.devices.unshift(Object.assign({id: uid()}, data));
   editD = null; save(); toast(was ? 'Device updated' : 'Device added'); renderInventory();
@@ -1312,11 +1271,11 @@ async function saveSheet(rows, base) {
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 }
-const DEV_HEAD = ['IMEI', 'Vehicle number', 'Name', 'Connect number', 'Vehicle expire'];
+const DEV_HEAD = ['IMEI', 'Vehicle number', 'Name', 'Connect number', 'Vehicle expiry', 'SIM ICCID', 'Recharge plan'];
 function downloadTemplate() { saveSheet([DEV_HEAD], 'inventory-template'); }
 function exportDevices() {
   if (!db.devices.length) { toast('No devices to download.'); return; }
-  saveSheet([DEV_HEAD].concat(db.devices.map(d => [d.imei, d.vehicle, d.name, d.phone, fmtD(d.expiry)])), 'inventory-' + today());
+  saveSheet([DEV_HEAD].concat(db.devices.map(d => [d.imei, d.vehicle, d.name, d.phone, fmtD(d.expiry), d.iccid || '', d.plan || ''])), 'inventory-' + today());
 }
 async function importDevices(file) {
   if (!file || !can('invbulk')) return;
@@ -1329,8 +1288,8 @@ async function importDevices(file) {
   if (!rows.length) { toast('The file is empty.'); return; }
   const h = rows[0].map(c => String(c).toLowerCase()), used = new Set();
   const col = re => { const k = h.findIndex((c, j) => !used.has(j) && re.test(c)); if (k >= 0) used.add(k); return k; };
-  let ci = {imei: col(/imei/), exp: col(/expir|valid|due/), veh: col(/vehicle|reg|plate/), ph: col(/connect|sim|mobile|phone|contact/), nm: col(/name|owner|customer|device/)};
-  const head = ci.imei >= 0; if (!head) ci = {imei: 0, veh: 1, nm: 2, ph: 3, exp: 4};
+  let ci = {imei: col(/imei/), ic: col(/iccid/), pl: col(/plan/), exp: col(/expir|valid|due/), veh: col(/vehicle|reg|plate/), ph: col(/connect|sim|mobile|phone|contact/), nm: col(/name|owner|customer|device/)};
+  const head = ci.imei >= 0; if (!head) ci = {imei: 0, veh: 1, nm: 2, ph: 3, exp: 4, ic: 5, pl: 6};
   const get = (r, k) => k < 0 || r[k] == null ? '' : r[k];
   const have = new Map(db.devices.map(d => [d.imei, d])), seen = new Set(), fresh = [], upd = [], mode = $('#dvm') ? $('#dvm').value : 'skip';
   let dup = 0, bad = 0, nodate = 0;
@@ -1340,7 +1299,7 @@ async function importDevices(file) {
     if (seen.has(imei)) { dup++; return; }
     seen.add(imei);
     const ex = get(r, ci.exp), expiry = toISO(ex); if (String(ex).trim() && !expiry) nodate++;
-    const data = {imei, vehicle: normVeh(get(r, ci.veh)), name: String(get(r, ci.nm)).trim(), phone: String(get(r, ci.ph)).trim(), expiry};
+    const data = {imei, vehicle: normVeh(get(r, ci.veh)), name: String(get(r, ci.nm)).trim(), phone: String(get(r, ci.ph)).trim(), expiry, iccid: String(get(r, ci.ic)).replace(/\D/g, ''), plan: String(get(r, ci.pl)).trim()};
     const o = have.get(imei);
     if (!o) fresh.push(Object.assign({id: uid() + fresh.length}, data)); else if (mode === 'update') upd.push([o, data]); else dup++;
   });
@@ -1363,7 +1322,7 @@ const statusOf = i => dueOf(i) <= 0 ? 'Paid' : (paidOf(i) > 0 ? 'Part paid' : 'D
 const stBadge = i => `<span class="badge ${dueOf(i) <= 0 ? '' : 'dueb'}">${statusOf(i)}</span>`;
 const invRow = (i, del, lbl) => `<tr><td>${esc(i.no)}</td><td>${esc(i.date)}</td><td>${esc(i.customer.name)}${tab === 'invoices' ? imeiHit(i) : ''}</td><td class="num">${money(i.totals.total)}</td><td class="num">${money(dueOf(i))}</td><td>${stBadge(i)}</td>
   <td><div class="row-actions"><button class="ghost" onclick="openInvoice('${i.id}')">${lbl || 'View / Print'}</button>${can('payment') ? `<button class="ghost" onclick="openPay('${i.id}')">Payment</button>` : ''}${del ? `<button class="ghost danger" onclick="${del}('${i.id}')">Delete</button>` : ''}</div></td></tr>`;
-function rerender() { if (tab === 'dash') renderDash(); else if (tab === 'invoices') drawInvoiceRows(); else if (tab === 'old') renderOld(); }
+function rerender() { if (tab === 'dash') renderDash(); else if (tab === 'invoices') drawInvoiceRows(); }
 let payId = null;
 function openPay(id) { if (!can('payment')) return; payId = id; drawPay(); $('#pay').hidden = false; }
 function closePay() { $('#pay').hidden = true; payId = null; }
@@ -1463,7 +1422,7 @@ function renderDash(scroll) {
     <div class="stats">
       ${card('due', 'due', '!', 'Total due', money(totalDue), dueList.length + ' bill(s) pending')}
       ${card('today', 'tdy', '+', 'Total bill today', money(todaySum), todayList.length + ' bill(s) made today')}
-      ${card('paid', 'paid', '✓', 'Total payment done today', money(paySum), pays.length + ' payment(s) received')}
+      ${card('paid', 'paid', '✓', 'Total payments received today', money(paySum), pays.length + ' payment(s) received')}
     </div>
     <div class="small" style="color:var(--muted);margin:-4px 0 14px">Click a box to see its bills.</div>
     <div class="charts">
@@ -1825,10 +1784,244 @@ function delOld(id) {
   db.invoices = db.invoices.filter(i => i.id !== id); save(); renderOld();
 }
 
+/* ---------- recharge request ---------- */
+const PLANS = ['1 Year', '2 Years'];
+const RQ = 'rcreq:', RI = 'rcimg:'; // request rows and image rows are kept in ib_docs
+let rrCache = [], rrSeen = null, rrBusy = false, rrAct = false, rrFilter = 'Pending', rrImg = '';
+const okImei15 = v => /^\d{15,16}$/.test(v);
+const okIccid = v => /^\d{18,22}$/.test(v);
+const reqData = r => { const x = Object.assign({}, r); delete x.owner; return x; };
+const reqRow = r => ({owner: r.owner, kind: RQ + r.id, data: reqData(r), updated_at: new Date().toISOString()});
+const RR_CLS = {Pending: 'soon', Active: 'ok', Rejected: 'dead'};
+function luhn(v) { let sum = 0; for (let i = 0; i < v.length; i++) { let d = +v[v.length - 1 - i]; if (i % 2) { d *= 2; if (d > 9) d -= 9; } sum += d; } return sum % 10 === 0; }
+
+/* read IMEI and SIM ICCID from text (OCR or barcode) */
+function findIds(text) {
+  const clean = r => r.replace(/[Oo]/g, '0').replace(/[Il]/g, '1').replace(/\D/g, '');
+  const cands = [];
+  String(text || '').split(/[\r\n\t]+| {2,}/).forEach(seg => {
+    (seg.match(/[0-9OoIl][0-9OoIl \-]{12,26}[0-9OoIl]/g) || []).forEach(m => {
+      if ((m.match(/\d/g) || []).length < 13) return;
+      const d = clean(m); if (d.length >= 15 && d.length <= 22) cands.push({d, label: /imei/i.test(seg), cc: /ccid|iccid|sim/i.test(seg)});
+    });
+    const lm = seg.match(/imei\W{0,3}[A-Za-z]?\W{0,3}((?:[0-9OoIl][ \-]?){15})/i); if (lm) cands.push({d: clean(lm[1]), label: true, cc: false});
+    const cm = seg.match(/c?ccid\W{0,3}((?:[0-9OoIl][ \-]?){18,21})/i); if (cm) cands.push({d: clean(cm[1]), label: false, cc: true});
+  });
+  const iccids = cands.filter(c => c.d.length >= 18 && c.d.length <= 22 && (c.cc || c.d.startsWith('89')) && (c.d.startsWith('89') || c.d.length <= 20))
+    .sort((a, b) => ((b.cc ? 2 : 0) + (b.d.startsWith('89') ? 1 : 0)) - ((a.cc ? 2 : 0) + (a.d.startsWith('89') ? 1 : 0)));
+  const imeis = cands.filter(c => c.d.length === 15 && !c.d.startsWith('89')).sort((a, b) => (b.label - a.label) || ((luhn(b.d) ? 1 : 0) - (luhn(a.d) ? 1 : 0)));
+  return {imei: imeis.length ? imeis[0].d : '', iccid: iccids.length ? iccids[0].d : ''};
+}
+const readImg = file => new Promise(res => { const r = new FileReader(); r.onload = () => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = r.result; }; r.onerror = () => res(null); r.readAsDataURL(file); });
+function ocrCanvas(im, contrast, rot) {
+  const k = Math.min(2400 / Math.max(im.width, im.height), 3), w = Math.round(im.width * k), h = Math.round(im.height * k), c = document.createElement('canvas');
+  rot = rot || 0; const sw = rot === 90 || rot === 270;
+  c.width = sw ? h : w; c.height = sw ? w : h;
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  g.translate(c.width / 2, c.height / 2); g.rotate(rot * Math.PI / 180); g.drawImage(im, -w / 2, -h / 2, w, h); g.setTransform(1, 0, 0, 1, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+  for (let i = 0; i < a.length; i += 4) { let v = a[i] * 0.299 + a[i + 1] * 0.587 + a[i + 2] * 0.114; if (contrast) v = Math.max(0, Math.min(255, (v - 128) * 1.7 + 128)); a[i] = a[i + 1] = a[i + 2] = v; }
+  g.putImageData(d, 0, 0); return c;
+}
+async function rrPickImage(file) {
+  if (!file) return;
+  const note = $('#rr-note'), set = (m, bad) => { note.textContent = m; note.className = 'rr-note' + (bad ? ' bad' : ''); };
+  set('Reading the image…');
+  const im = await readImg(file);
+  if (!im) { set('This image could not be read. Try another photo.', true); return; }
+  const k = Math.min(1, 1000 / Math.max(im.width, im.height)), sc = document.createElement('canvas');
+  sc.width = Math.round(im.width * k); sc.height = Math.round(im.height * k);
+  sc.getContext('2d').drawImage(im, 0, 0, sc.width, sc.height);
+  rrImg = sc.toDataURL('image/jpeg', 0.7);
+  const pv = $('#rr-prev'); pv.src = rrImg; pv.hidden = false;
+  let found = {imei: '', iccid: ''};
+  const merge = f => { found.imei = found.imei || f.imei; found.iccid = found.iccid || f.iccid; };
+  try { if ('BarcodeDetector' in window) { const codes = await new BarcodeDetector().detect(ocrCanvas(im, false)); merge(findIds(codes.map(c => c.rawValue).join('\n'))); } } catch (e) { /* barcode not supported: use OCR */ }
+  if (!found.imei || !found.iccid) {
+    try {
+      if (!window.Tesseract) await loadJs('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+      for (const [contrast, rot] of [[false, 0], [false, 90], [false, 270], [true, 0], [true, 90], [true, 270], [false, 180]]) {
+        const r = await Tesseract.recognize(ocrCanvas(im, contrast, rot), 'eng', {logger: m => { if (m.status === 'recognizing text') set('Reading the image… ' + Math.round(m.progress * 100) + '%'); }});
+        merge(findIds(r.data.text));
+        if (found.imei && found.iccid) break;
+      }
+    } catch (e) { console.error(e); set('Could not read the image (internet needed for reading). Please type the numbers.', true); return; }
+  }
+  if (found.imei) $('#rr-imei').value = found.imei;
+  if (found.iccid) $('#rr-iccid').value = found.iccid;
+  if (found.imei && found.iccid) set('IMEI and SIM ICCID were read from the image. Please check them once.');
+  else if (found.imei) set('IMEI was read. SIM ICCID was not found, please type it.', true);
+  else if (found.iccid) set('SIM ICCID was read. IMEI was not found, please type it.', true);
+  else set('No numbers could be read. Upload a clearer, straight photo or type the numbers.', true);
+}
+
+async function rrFetch(own) {
+  let q = sb.from('ib_docs').select('owner,data').like('kind', RQ + '%').order('updated_at', {ascending: false}).limit(300);
+  if (own) q = q.eq('owner', cur.id);
+  const r = await q; if (r.error) throw r.error;
+  return r.data.map(x => Object.assign({}, x.data, {owner: x.owner}));
+}
+async function submitRR() {
+  if (!cur || cur.role !== 'user' || !can('rr')) return;
+  const client = $('#rr-name').value.trim(), phone = $('#rr-phone').value.replace(/[\s-]/g, ''), plan = $('#rr-plan').value;
+  const iccid = $('#rr-iccid').value.replace(/\s+/g, ''), imei = $('#rr-imei').value.replace(/\s+/g, '');
+  if (!client) { toast('Enter the client name.'); return; }
+  if (!/^\+?\d{10,13}$/.test(phone)) { toast('Enter a valid client number (10 digits).'); return; }
+  if (!plan) { toast('Select the recharge plan.'); return; }
+  if (!okIccid(iccid)) { toast('SIM ICCID must be 18 to 22 digits.'); return; }
+  if (!okImei15(imei)) { toast('IMEI must be 15 digits.'); return; }
+  const btn = $('#rr-go'); btn.disabled = true;
+  try {
+    const mine = await rrFetch(true);
+    if (mine.some(r => r.imei === imei && r.status === 'Pending')) { toast('A request for this IMEI is already waiting for Admin.'); return; }
+    const r = {id: uid(), owner: cur.id, by: cur.name || cur.username, user: cur.username, client, phone, plan, iccid, imei, hasImg: !!rrImg, status: 'Pending', created: new Date().toISOString(), expiry: '', decided: '', note: ''};
+    if (rrImg) { const w = await sb.from('ib_docs').upsert({owner: cur.id, kind: RI + r.id, data: {img: rrImg}, updated_at: new Date().toISOString()}, {onConflict: 'owner,kind'}); if (w.error) throw w.error; }
+    const w2 = await sb.from('ib_docs').upsert(reqRow(r), {onConflict: 'owner,kind'}); if (w2.error) throw w2.error;
+    toast('Request sent to Admin.'); rrImg = ''; renderRR();
+  } catch (e) { console.error(e); toast('Request not sent: ' + errMsg(e)); }
+  finally { btn.disabled = false; }
+}
+async function renderRR() {
+  if (!cur) return;
+  const adm = cur.role === 'admin'; rrImg = '';
+  const alerts = adm && 'Notification' in window && Notification.permission === 'default' ? '<button class="ghost" onclick="Notification.requestPermission().then(() => renderRR())">Turn on browser alerts</button>' : '';
+  $('#main').innerHTML = `<div class="bar"><h2 style="margin:0">Recharge Request</h2><div class="row-actions">${alerts}<button class="ghost" onclick="pollReq(true)">Refresh</button></div></div>` + (adm ? '' : `
+    <div class="card"><h3>New recharge request</h3>
+      <div class="grid">
+        <div><label for="rr-name">Client name</label><input id="rr-name" autocomplete="off"></div>
+        <div><label for="rr-phone">Client number</label><input id="rr-phone" inputmode="tel" autocomplete="off"></div>
+        <div><label for="rr-plan">Recharge plan</label><select id="rr-plan"><option value="">Select plan</option>${PLANS.map(x => `<option>${x}</option>`).join('')}</select></div>
+        <div><label for="rr-iccid">SIM ICCID number</label><input id="rr-iccid" inputmode="numeric" autocomplete="off" placeholder="Filled from the image"></div>
+        <div><label for="rr-imei">IMEI number</label><input id="rr-imei" inputmode="numeric" autocomplete="off" placeholder="Filled from the image"></div>
+      </div>
+      <div style="margin-top:12px"><label for="rr-file">Device details (upload an image of the GPS device)</label>
+        <div class="rr-img"><input id="rr-file" type="file" accept="image/*" onchange="rrPickImage(this.files[0])" style="max-width:320px"><img id="rr-prev" alt="Device" hidden></div>
+        <div class="rr-note" id="rr-note" role="status">Upload a clear photo of the device label. IMEI and SIM ICCID are filled in automatically.</div></div>
+      <div class="row-actions" style="margin-top:14px"><button class="btn" id="rr-go" onclick="submitRR()">Submit request</button></div></div>`) + '<div class="card" id="rr-list"><div class="empty">Loading…</div></div>';
+  if (!rrCache.length) await pollReq(true); else drawRRList();
+}
+function drawRRList() {
+  const el = $('#rr-list'); if (!el || tab !== 'rr') return;
+  const adm = cur.role === 'admin', d = x => x ? fmtD(String(x).slice(0, 10)) : '';
+  let list = rrCache.slice();
+  if (adm && rrFilter) list = list.filter(r => r.status === rrFilter);
+  const pill = r => `<span class="ex ${RR_CLS[r.status] || ''}">${r.status === 'Pending' && !adm ? 'Pending approval' : esc(r.status)}</span>${r.note ? `<div class="small" style="color:var(--muted)">${esc(r.note)}</div>` : ''}`;
+  const head = adm ? '<th>Date</th><th>From</th><th>Client</th><th>Plan</th><th>IMEI / SIM ICCID</th><th>Image</th><th>Status / Action</th>' : '<th>Date</th><th>Client</th><th>Plan</th><th>IMEI / SIM ICCID</th><th>Status</th><th>Vehicle expiry</th>';
+  const rows = list.map(r => {
+    const ids = `${esc(r.imei)}<div class="small" style="color:var(--muted)">${esc(r.iccid)}</div>`, cl = `${esc(r.client)}<div class="small" style="color:var(--muted)">${esc(r.phone)}</div>`;
+    if (!adm) return `<tr><td>${d(r.created)}</td><td>${cl}</td><td>${esc(r.plan)}</td><td>${ids}</td><td>${pill(r)}</td><td>${r.status === 'Active' ? d(r.expiry) : ''}</td></tr>`;
+    const act = r.status === 'Pending'
+      ? `<div class="rr-act"><label for="rx-${r.id}" style="margin:0">Vehicle expiry date</label><input id="rx-${r.id}" type="date"><div class="row-actions"><button class="btn" onclick="approveRR('${r.id}')">Approve</button><button class="ghost danger" onclick="rejectRR('${r.id}')">Reject</button></div></div>`
+      : `${pill(r)}${r.status === 'Active' ? `<div class="small">Expiry: ${d(r.expiry)}</div>` : ''}`;
+    return `<tr><td>${d(r.created)}</td><td>${esc(r.by)}<div class="small" style="color:var(--muted)">${esc(r.user)}</div></td><td>${cl}</td><td>${esc(r.plan)}</td><td>${ids}</td><td>${r.hasImg ? `<button class="ghost" onclick="viewRRImg('${r.id}')">View</button>` : ''}</td><td>${act}</td></tr>`;
+  }).join('');
+  const filt = adm ? `<select style="width:auto" onchange="rrFilter = this.value; drawRRList()" aria-label="Filter">${[['Pending', 'Pending'], ['Active', 'Active'], ['Rejected', 'Rejected'], ['', 'All']].map(([v, l]) => `<option value="${v}" ${rrFilter === v ? 'selected' : ''}>${l}</option>`).join('')}</select>` : '';
+  el.innerHTML = `<div class="bar"><h3 style="margin:0">${adm ? 'Requests from users' : 'My requests'}</h3>${filt}</div>
+    <div class="scroll"><table><thead><tr>${head}</tr></thead><tbody>${rows || `<tr><td colspan="${adm ? 7 : 6}" class="empty">${adm ? 'No requests here.' : 'No requests yet.'}</td></tr>`}</tbody></table></div>`;
+}
+async function viewRRImg(id) {
+  const r = rrCache.find(x => x.id === id); if (!r) return;
+  try {
+    const w = await sb.from('ib_docs').select('data').eq('owner', r.owner).eq('kind', RI + id).maybeSingle();
+    if (w.error) throw w.error;
+    if (!w.data) { toast('No image found.'); return; }
+    $('#paybox').innerHTML = `<h3>Device image</h3><div class="small" style="color:var(--muted);margin-bottom:10px">${esc(r.client)} · IMEI ${esc(r.imei)}</div><img src="${w.data.data.img}" alt="Device" style="max-width:100%;border:1px solid var(--line);border-radius:8px"><div style="margin-top:14px"><button class="ghost" onclick="closePay()">Close</button></div>`;
+    $('#pay').hidden = false;
+  } catch (e) { console.error(e); toast('Could not open the image: ' + errMsg(e)); }
+}
+async function addDeviceToOwner(owner, dev) {
+  const merge = list => {
+    const ex = list.find(x => x.imei === dev.imei);
+    if (ex) { ex.expiry = dev.expiry; ex.plan = dev.plan; ex.iccid = dev.iccid || ex.iccid || ''; if (!ex.name) ex.name = dev.name; if (!ex.phone) ex.phone = dev.phone; }
+    else list.unshift(dev);
+  };
+  if (acct && acct.id === owner) { merge(db.devices); save(); return; } // Admin has this account open right now
+  const c = await sb.from('ib_docs').select('data').eq('owner', owner).eq('kind', 'core').maybeSingle();
+  if (c.error) throw c.error;
+  const core = (c.data && c.data.data) || {};
+  core.devices = Array.isArray(core.devices) ? core.devices : [];
+  merge(core.devices);
+  const w = await sb.from('ib_docs').upsert({owner, kind: 'core', data: core, updated_at: new Date().toISOString()}, {onConflict: 'owner,kind'});
+  if (w.error) throw w.error;
+}
+async function approveRR(id) {
+  const r = rrCache.find(x => x.id === id); if (!r || rrAct || cur.role !== 'admin') return;
+  const exp = ($('#rx-' + id) || {}).value;
+  if (!exp) { toast('Enter the Vehicle expiry date first.'); return; }
+  rrAct = true;
+  try {
+    await addDeviceToOwner(r.owner, {id: uid(), imei: r.imei, iccid: r.iccid, vehicle: '', name: r.client, phone: r.phone, plan: r.plan, expiry: exp});
+    Object.assign(r, {status: 'Active', expiry: exp, decided: new Date().toISOString(), note: ''});
+    const w = await sb.from('ib_docs').upsert(reqRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error;
+    toast('Approved. The device is added to ' + (r.by || 'the user') + "'s inventory."); pollReq(true);
+  } catch (e) { console.error(e); toast('Could not approve: ' + errMsg(e)); }
+  finally { rrAct = false; }
+}
+async function rejectRR(id) {
+  const r = rrCache.find(x => x.id === id); if (!r || rrAct || cur.role !== 'admin') return;
+  const why = prompt('Reason for rejecting (optional):'); if (why === null) return;
+  rrAct = true;
+  try {
+    Object.assign(r, {status: 'Rejected', decided: new Date().toISOString(), note: why.trim()});
+    const w = await sb.from('ib_docs').upsert(reqRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error;
+    toast('Request rejected.'); pollReq(true);
+  } catch (e) { console.error(e); toast('Could not reject: ' + errMsg(e)); }
+  finally { rrAct = false; }
+}
+function setRRBadge(n) {
+  const b = document.querySelector('aside button[data-tab="rr"]');
+  if (b) b.innerHTML = 'Recharge Request' + (n ? `<span class="nb">${n}</span>` : '');
+  document.title = (n ? '(' + n + ') ' : '') + 'IOT Billing Solution';
+}
+async function reconcileDevices(list) { // approved request -> make sure the device is in this user's inventory
+  if (!cur || cur.role !== 'user' || viewing()) return;
+  let changed = false;
+  for (const r of list) {
+    if (r.status !== 'Active' || r.invDone) continue;
+    const dv = db.devices.find(x => x.imei === r.imei);
+    if (!dv) { db.devices.unshift({id: uid(), imei: r.imei, iccid: r.iccid, vehicle: '', name: r.client, phone: r.phone, plan: r.plan, expiry: r.expiry}); changed = true; }
+    else if (dv.expiry !== r.expiry || dv.plan !== r.plan || !dv.iccid) { Object.assign(dv, {expiry: r.expiry, plan: r.plan, iccid: dv.iccid || r.iccid}); changed = true; }
+    r.invDone = true;
+    try { await sb.from('ib_docs').upsert(reqRow(r), {onConflict: 'owner,kind'}); } catch (e) { /* will retry next time */ }
+  }
+  if (changed) { save(); if (tab === 'inv' && !editD) renderInventory(); }
+}
+async function pollReq(force) {
+  if (!cur || !sb || (rrBusy && !force)) return;
+  rrBusy = true;
+  try {
+    const me = cur.id, adm = cur.role === 'admin', list = await rrFetch(!adm);
+    if (!cur || cur.id !== me) return;
+    rrCache = list;
+    if (adm) {
+      const pend = list.filter(r => r.status === 'Pending');
+      setRRBadge(pend.length);
+      const fresh = rrSeen ? pend.filter(r => !rrSeen.has(r.id)) : [];
+      if (!rrSeen && pend.length) toast(pend.length + ' recharge request(s) waiting for your approval.');
+      else if (fresh.length) {
+        const msg = 'New recharge request from ' + (fresh[0].by || fresh[0].user) + (fresh.length > 1 ? ' (+' + (fresh.length - 1) + ' more)' : '') + '.';
+        toast(msg);
+        try { if ('Notification' in window && Notification.permission === 'granted') new Notification('Recharge Request', {body: msg + ' Client: ' + fresh[0].client}); } catch (e) { /* ignore */ }
+      }
+      rrSeen = new Set(pend.map(r => r.id));
+      const ae = document.activeElement, typing = (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) || Array.from(document.querySelectorAll('[id^="rx-"]')).some(e => e.value);
+      if (tab === 'rr' && (force === true || !typing)) drawRRList();
+    } else {
+      if (rrSeen) list.forEach(r => { const o = rrSeen.get(r.id); if (o && o !== r.status) toast(r.status === 'Active' ? 'Recharge approved for ' + r.client + '. Status: Active.' : 'Recharge request for ' + r.client + ' was rejected.'); });
+      rrSeen = new Map(list.map(r => [r.id, r.status]));
+      await reconcileDevices(list);
+      if (tab === 'rr') drawRRList();
+    }
+  } catch (e) { console.error(e); if (tab === 'rr' && $('#rr-list') && !rrCache.length) $('#rr-list').innerHTML = '<div class="warn">Could not load requests. ' + esc(errMsg(e)) + '</div>'; }
+  finally { rrBusy = false; }
+}
+setInterval(() => { if (cur && !document.hidden) pollReq(); }, 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && cur) pollReq(); });
+
 /* ---------- create account (Admin only) ---------- */
 const USERS_KEY = 'billing-users-v1'; // old browser-only accounts (used for moving data)
-const PERMS = [['business', 'Business details (add more shops)'], ['dash', 'Dashboard'], ['new', 'Create new invoice'], ['invoices', 'View invoices'], ['old', 'Old invoices (upload)'], ['products', 'Products'], ['customers', 'Customers'], ['addcust', 'Add customer inside New invoice'], ['settings', 'Settings (numbering, backup)'], ['payment', 'Record payments'], ['inv', 'Inventory (view device list)'], ['invadd', 'Inventory: add / edit device manually'], ['invbulk', 'Inventory: bulk upload (Excel / CSV)'], ['delete', 'Delete single items only (bill, product, customer, device)']];
-const DEF_PERMS = ['dash', 'new', 'invoices', 'products', 'inv', 'customers', 'payment', 'addcust', 'invadd', 'invbulk'];
+const PERMS = [['dash', 'Dashboard'], ['new', 'Create invoice'], ['invoices', 'View invoices'], ['addcust', 'Add customer inside Create invoice'], ['payment', 'Record payments'], ['inv', 'Inventory (view device list)'], ['invadd', 'Inventory: add / edit device manually'], ['invbulk', 'Inventory: bulk upload (Excel / CSV)'], ['recharge', 'Recharge Request (send requests to Admin)'], ['delete', 'Delete single items only (bill, device)']];
+const DEF_PERMS = ['dash', 'new', 'invoices', 'inv', 'payment', 'addcust', 'invadd', 'invbulk', 'recharge'];
 let usersCache = [], usersLoaded = false, billCounts = {}, editU = null;
 async function loadUsers() {
   const r = await sb.from('ib_profiles').select('*').eq('role', 'user').order('created_at');
@@ -2002,6 +2195,7 @@ async function startSession(p) {
   db = load(); resetState(); afterLoad(); drawViewBar();
   $('#login').hidden = true; $('#lp').value = ''; $('#le').textContent = '';
   applyNav(); go(firstTab() || 'dash');
+  rrSeen = null; rrCache = []; setRRBadge(0); pollReq(true);
   return true;
 }
 async function login() {
@@ -2023,6 +2217,7 @@ async function login() {
 function endSession() {
   clearTimeout(syncTimer); dirty = false; syncing = false;
   cur = null; acct = null; db = defaults(); remote = {core: {}, invoices: []}; sent = {core: '', inv: {}};
+  rrSeen = null; rrCache = []; setRRBadge(0);
   closeViewer(); closePay(); $('#choice').hidden = true; $('#main').innerHTML = ''; $('#viewbar').hidden = true;
   $('#login').hidden = false; $('#lu').value = ''; $('#lp').value = ''; $('#le').textContent = '';
 }
