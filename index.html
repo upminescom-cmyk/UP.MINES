@@ -283,6 +283,55 @@ aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6
 .rr-note{font-size:13px;min-height:1.3em;margin-top:6px;color:var(--accent-dark)}
 .rr-note.bad{color:var(--danger)}
 .rr-act{display:grid;gap:6px;min-width:190px}
+
+/* ---- Update Tempering Data (TCP client look) ---- */
+.tdp{--acc:#4f46e5;--tl:rgba(100,116,139,.35);background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 55%,#fdf2f8 100%);border-radius:18px;padding:16px;margin-top:12px}
+.tdp .td-layout{display:grid;gap:20px}
+@media (min-width:1000px){.tdp .td-layout{grid-template-columns:400px minmax(0,1fr);align-items:start}}
+.tdp .glass{background:rgba(255,255,255,.65);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);border:1px solid rgba(255,255,255,.8);border-radius:22px;box-shadow:0 8px 32px rgba(31,38,135,.1);padding:20px}
+.tdp .stack{display:grid;gap:14px}
+.tdp .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tdp .f{position:relative}
+.tdp .f input{width:100%;height:56px;padding:20px 16px 4px;font:500 16px "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;color:var(--ink);background:rgba(255,255,255,.7);border:1.5px solid var(--tl);border-radius:16px;outline:none;transition:border-color .2s,box-shadow .2s}
+.tdp .f input:focus{border-color:var(--acc);box-shadow:0 0 0 4px rgba(79,70,229,.12);outline:none}
+.tdp .f input[readonly],.tdp .f input:disabled{background:rgba(241,245,249,.7);cursor:not-allowed}
+.tdp .f label{position:absolute;left:16px;top:8px;margin:0;font-size:11.5px;font-weight:600;color:var(--acc);pointer-events:none}
+.tdp .btns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+.tdp .tbtn{height:52px;border:0;border-radius:999px;font:700 15px "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;letter-spacing:.04em;color:#fff;cursor:pointer;box-shadow:0 6px 18px rgba(31,38,135,.18);transition:transform .15s,box-shadow .2s,opacity .2s}
+.tdp .tbtn:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(31,38,135,.25)}
+.tdp .tbtn:active{transform:scale(.97)}
+.tdp #td-start{background:#2196f3}
+.tdp #td-stop{background:#f44336}
+.tdp #td-save{background:#4f46e5;width:100%}
+.tdp .tbtn:disabled{opacity:.45;pointer-events:none}
+.tdp .tnote{font-size:12px;color:var(--muted);margin-top:-4px}
+.tdp .status{border-radius:20px;background:rgba(255,255,255,.6);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.8);padding:18px 20px;box-shadow:0 8px 32px rgba(31,38,135,.08)}
+.tdp .status h3{margin:0 0 8px;font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.tdp .dot{width:10px;height:10px;border-radius:50%;background:#94a3b8;display:inline-block}
+.tdp .dot.run{background:#059669;box-shadow:0 0 0 4px rgba(5,150,105,.18)}
+.tdp .dot.err{background:#dc2626;box-shadow:0 0 0 4px rgba(220,38,38,.18)}
+.tdp .dot.sending{background:#f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,.18)}
+.tdp #td-msg{font-size:14.5px;line-height:1.5;word-break:break-word;white-space:pre-line;color:#334155}
+.tdp #td-pk{margin-top:12px;padding:12px;background:rgba(241,245,249,.8);border:1px solid rgba(203,213,225,.6);border-radius:12px;font:12px ui-monospace,Menlo,Consolas,monospace;color:#475569;word-break:break-all;max-height:140px;overflow-y:auto}
+.tdp #td-pk:empty{display:none}
+.tdp .db-section{margin-top:20px}
+.tdp .db-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.tdp .db-head h2{font-size:18px;margin:0}
+.tdp .tw{overflow-x:auto;border-radius:16px;border:1px solid rgba(255,255,255,.8);background:rgba(255,255,255,.55)}
+.tdp table{width:100%;border-collapse:collapse;font-size:13.5px}
+.tdp th{background:rgba(241,245,249,.8);color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;padding:12px 14px;border-bottom:1px solid rgba(203,213,225,.6);white-space:nowrap}
+.tdp td{padding:12px 14px;border-bottom:1px solid rgba(226,232,240,.6);white-space:nowrap}
+.tdp tbody tr:last-child td{border-bottom:0}
+.tdp tbody tr{cursor:pointer}
+.tdp tbody tr:hover{background:rgba(238,242,255,.6)}
+.tdp tr.sel{background:rgba(199,210,254,.4)!important;font-weight:600}
+.tdp .pills{display:flex;gap:6px}
+.tdp .pill{height:32px;padding:0 12px;border:0;border-radius:999px;font:600 12px "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;cursor:pointer}
+.tdp .pill.add{background:#4f46e5;color:#fff}
+.tdp .pill.edt{background:#e2e8f0;color:#334155}.tdp .pill.edt:hover{background:#cbd5e1}
+.tdp .pill.del{background:#fee2e2;color:#dc2626}.tdp .pill.del:hover{background:#fca5a5}
+.tdp .pill.sel{background:#dbeafe;color:#1d4ed8}.tdp .pill.sel:hover{background:#bfdbfe}
+.tdp .cnt{display:inline-block;padding:3px 10px;border-radius:12px;background:#dcfce7;color:#15803d;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
 </head>
@@ -2041,100 +2090,254 @@ setInterval(() => { if (cur && !document.hidden) pollReq(); }, 15000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && cur) pollReq(); });
 
 /* ---------- update tempering data ---------- */
-const TD_TPL = "$DP,TNOWTN,2.0.4,NR,01,L,{IMEI},{VEH},1,{DATE},{TIME},{LAT},{NS},{LON},{EW},0.0,207.78,45,265.5,0.60,0.40,airtel,0,1,25.6,4.0,0,C,29,404,97,06BC,3014,31,06BC,8E3C,31,06BC,8E1E,31,06BC,6E01,31,06BC,585A,0000,00,0,85091.887,0,0,{SEQ},(),{CRC}*";
-const TD_DEF = {ip: '154.210.168.75', port: '4002', lat: '30.0098235', lon: '77.5719748', veh: '0000', url: 'send.php'};
-const TDK = 'tdlog:';
-let tdCache = [], tdAdminCfg = null, tdSending = false, tdLast = null;
+/* Same packet, CRC32 and packet counting as the "TCP Continuous Client" page. */
+const TD_TPL = "$DP,TNOWTN,2.0.4,NR,01,L,{IMEI},0000,1,{DATE},{TIME},{LAT},{NS},{LON},{EW},0.0,207.78,45,265.5,0.60,0.40,airtel,0,1,25.6,4.0,0,C,29,404,97,06BC,3014,31,06BC,8E3C,31,06BC,8E1E,31,06BC,6E01,31,06BC,585A,0000,00,0,85091.887,0,0,{SEQ},(),{CRC}*";
+const TD_DEF = {ip: '154.210.168.75', port: '4002', lat: '30.0098235', lon: '77.5719748', url: 'https://xudvdqopdntcgnwzkiny.supabase.co/functions/v1/send'};
+const TD_EVERY = 10; // seconds between two packets
+const TDV = 'tdveh:'; // one row per vehicle, kept in ib_docs
+let tdVeh = [], tdSel = '', tdAdminCfg = null, tdRun = false, tdTimer = null, tdSent = 0, tdBusy = false, tdJob = null, tdPkt = '';
+let tdMsg = {t: 'Result will appear here', s: ''};
+
+/* CRC32 (IEEE) */
 const TDT = [...Array(256)].map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
 const tdCrc = t => { let c = -1; for (let i = 0; i < t.length; i++) c = TDT[(c ^ t.charCodeAt(i)) & 255] ^ (c >>> 8); return ((c ^ -1) >>> 0).toString(16).toUpperCase().padStart(8, '0'); };
-function tdFormCfg() { const g = id => ($('#td-' + id) ? $('#td-' + id).value.trim() : ''); return {ip: g('ip') || TD_DEF.ip, port: g('port') || TD_DEF.port, lat: g('lat') || TD_DEF.lat, lon: g('lon') || TD_DEF.lon, veh: g('veh') || TD_DEF.veh, url: g('url') || TD_DEF.url}; }
-const tdCfg = () => cur.role === 'admin' ? Object.assign({}, TD_DEF, tdAdminCfg || {}) : Object.assign({}, TD_DEF, (cur.perms && cur.perms._td) || {});
-function tdPacket(imei, c, seq) {
-  const d = new Date(), z = n => String(n).padStart(2, '0'), lat = parseFloat(c.lat) || 30.0098235, lon = parseFloat(c.lon) || 77.5719748;
-  const v = {IMEI: imei, VEH: c.veh || '0000', DATE: z(d.getUTCDate()) + z(d.getUTCMonth() + 1) + d.getUTCFullYear(), TIME: z(d.getUTCHours()) + z(d.getUTCMinutes()) + z(d.getUTCSeconds()), LAT: Math.abs(lat).toFixed(8), NS: lat < 0 ? 'S' : 'N', LON: Math.abs(lon).toFixed(8), EW: lon < 0 ? 'W' : 'E', SEQ: String(seq % 1000000).padStart(6, '0')};
+
+/* settings: Admin saves them once, users get them from their account */
+function tdNorm(c) {
+  c = c || {}; const o = {};
+  Object.keys(TD_DEF).forEach(k => { const v = c[k]; o[k] = v == null || String(v).trim() === '' ? TD_DEF[k] : String(v).trim(); });
+  if (!/^https?:\/\//i.test(o.url)) o.url = TD_DEF.url; // the old value was "send.php"
+  return o;
+}
+function tdReadCfg(pre) { const g = id => { const e = $('#' + pre + '-' + id); return e ? e.value : ''; }; return tdNorm({ip: g('ip'), port: g('port'), lat: g('lat'), lon: g('lon'), url: g('url')}); }
+const tdCfg = () => tdNorm(cur.role === 'admin' ? tdAdminCfg : (cur.perms && cur.perms._td));
+async function tdEnsureAdminCfg() {
+  if (tdAdminCfg || !cur || cur.role !== 'admin') return;
+  try { const r = await sb.from('ib_docs').select('data').eq('owner', cur.id).eq('kind', 'tdcfg').maybeSingle(); tdAdminCfg = (r.data && r.data.data) || {}; }
+  catch (e) { tdAdminCfg = {}; }
+}
+async function tdFreshUser() { // user: pick up the newest IP / port the Admin saved
+  if (!cur || cur.role === 'admin') return;
+  try { const p = await getProfile(cur.id); if (p && p.perms) cur.perms = p.perms; } catch (e) { /* keep old */ }
+}
+
+/* packet */
+function tdPacket(imei, lat, lon, seq) {
+  const d = new Date(), z = n => String(n).padStart(2, '0');
+  const v = {IMEI: imei, DATE: z(d.getUTCDate()) + z(d.getUTCMonth() + 1) + d.getUTCFullYear(), TIME: z(d.getUTCHours()) + z(d.getUTCMinutes()) + z(d.getUTCSeconds()),
+    LAT: Math.abs(lat).toFixed(8), NS: lat < 0 ? 'S' : 'N', LON: Math.abs(lon).toFixed(8), EW: lon < 0 ? 'W' : 'E', SEQ: String(seq % 1000000).padStart(6, '0')};
   let p = TD_TPL; Object.keys(v).forEach(k => { p = p.replace('{' + k + '}', v[k]); });
   return p.replace('{CRC}', tdCrc(p.slice(0, p.indexOf('{CRC}'))));
 }
+function tdLatPaste(e) { // allow pasting "lat, lon" into Lat
+  const m = e.value.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
+  if (m) { e.value = m[1]; const o = $('#tp-lon'); if (o) o.value = m[2]; }
+}
+
+/* page */
 async function renderTD() {
   if (!cur) return;
   const adm = cur.role === 'admin';
-  if (adm && !tdAdminCfg) {
-    try { const r = await sb.from('ib_docs').select('data').eq('owner', cur.id).eq('kind', 'tdcfg').maybeSingle(); tdAdminCfg = (r.data && r.data.data) || {}; } catch (e) { tdAdminCfg = {}; }
-    if (tab !== 'td') return;
-  }
-  const c = tdCfg();
+  if (adm && !tdAdminCfg) { await tdEnsureAdminCfg(); if (tab !== 'td') return; }
+  const c = adm && tdRun && tdJob && tdJob.adm ? tdJob.c : tdCfg();
+  const fld = (id, label, val, extra) => `<div class="f"><input id="${id}" value="${esc(val)}" autocomplete="off" ${extra || ''}><label for="${id}">${label}</label></div>`;
   $('#main').innerHTML = `<div class="bar"><h2 style="margin:0">Update Tempering Data</h2><button class="ghost" onclick="tdLoad()">Refresh</button></div>
-    <div class="card"><div class="grid">
-      <div><label for="td-imei">IMEI</label><input id="td-imei" inputmode="numeric" maxlength="15" autocomplete="off" placeholder="15 digit IMEI" onkeydown="if (event.key === 'Enter') tdSend()"></div>
-      ${adm ? `<div><label for="td-veh">Vehicle number</label><input id="td-veh" value="${esc(c.veh)}"></div>
-      <div><label for="td-lat">Lat</label><input id="td-lat" value="${esc(c.lat)}"></div>
-      <div><label for="td-lon">Lon</label><input id="td-lon" value="${esc(c.lon)}"></div>
-      <div><label for="td-ip">Server IP</label><input id="td-ip" value="${esc(c.ip)}"></div>
-      <div><label for="td-port">Port</label><input id="td-port" inputmode="numeric" value="${esc(c.port)}"></div>
-      <div><label for="td-url">send.php address</label><input id="td-url" value="${esc(c.url)}"></div>` : ''}
+  <div class="tdp"><div class="td-layout">
+    <div class="glass"><div class="stack">
+      ${fld('td-imei', 'IMEI', tdJob ? tdJob.imei : '', `inputmode="numeric" maxlength="15" placeholder="15 digit IMEI" data-lock onkeydown="if (event.key === 'Enter') tdStart()"`)}
+      ${adm ? `${fld('tp-veh', 'Vehicle No', '0000', 'readonly')}
+      <div class="two">${fld('tp-lat', 'Lat', c.lat, `inputmode="decimal" data-lock oninput="tdLatPaste(this)"`)}${fld('tp-lon', 'Lon', c.lon, `inputmode="decimal" data-lock`)}</div>
+      ${fld('tp-ip', 'Server IP', c.ip, 'data-lock')}
+      ${fld('tp-port', 'Port', c.port, `inputmode="numeric" data-lock`)}
+      ${fld('tp-url', 'Send address (Supabase function)', c.url, 'data-lock')}` : ''}
+      <div class="btns"><button class="tbtn" id="td-start" onclick="tdStart()">START LOOP</button><button class="tbtn" id="td-stop" onclick="tdStop()" disabled>STOP</button></div>
+      ${adm ? `<button class="tbtn" id="td-save" data-lock onclick="tdSave()">SAVE IP &amp; PORT</button><div class="tnote">Saved settings are also applied to all user accounts. Users only enter the IMEI.</div>` : ''}
+    </div></div>
+    <div>
+      <div class="status"><h3><i class="dot" id="td-dot"></i>Status:</h3><div id="td-msg"></div>${adm ? '<div id="td-pk"></div>' : ''}</div>
+      <div class="db-section glass">
+        <div class="db-head"><h2>Vehicle Database</h2><button class="pill add" onclick="tdForm()">+ Add Record</button></div>
+        <div class="tw"><table><thead><tr><th>Serial no</th>${adm ? '<th>User</th>' : ''}<th>Vehicle Number</th><th>IMEI</th><th>count of packets send</th><th>action</th></tr></thead>
+          <tbody id="td-db"><tr><td colspan="${adm ? 6 : 5}" class="empty">Loading…</td></tr></tbody></table></div>
+      </div>
     </div>
-    <div class="row-actions" style="margin-top:14px"><button class="btn" id="td-go" onclick="tdSend()">Update</button></div>
-    <div id="td-st" class="warn" style="margin:14px 0 0" role="status">Enter the IMEI and press Update.</div>
-    ${adm ? '<pre id="td-pk" class="small" style="white-space:pre-wrap;word-break:break-all;color:var(--muted);margin:10px 0 0"></pre>' : ''}</div>
-    <div class="card" id="td-list"><div class="empty">Loading…</div></div>`;
-  tdLoad();
+  </div></div>`;
+  tdStatus(tdMsg.t, tdMsg.s);
+  const pk = $('#td-pk'); if (pk) pk.textContent = tdPkt;
+  tdUI(); tdLoad();
 }
-function tdStatus(msg, kind) {
-  const el = $('#td-st'); if (!el) return;
-  el.textContent = msg;
-  el.style.cssText = 'margin:14px 0 0;' + (kind === 'ok' ? 'background:#dcfce7;border-color:#86d9a3;color:#15803d' : kind === 'bad' ? 'background:#fee2e2;border-color:#f0a8a2;color:#b42318' : '');
+function tdStatus(t, s) {
+  tdMsg = {t, s: s || ''};
+  const m = $('#td-msg'); if (m) m.textContent = t;
+  const d = $('#td-dot'); if (d) d.className = 'dot ' + (s || '');
 }
+function tdUI() {
+  const a = $('#td-start'), b = $('#td-stop'); if (a) a.disabled = tdRun; if (b) b.disabled = !tdRun;
+  document.querySelectorAll('.tdp [data-lock]').forEach(e => { e.disabled = tdRun; });
+}
+
+/* vehicle database (IMEI + count of packets sent) */
+const tdFind = (o, id) => tdVeh.find(v => v.owner === o && v.id === id);
+const tdRow = r => { const d = Object.assign({}, r); delete d.owner; return {owner: r.owner, kind: TDV + r.id, data: d, updated_at: new Date().toISOString()}; };
+async function tdSaveRec(r) { const w = await sb.from('ib_docs').upsert(tdRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error; }
 async function tdLoad() {
+  if (!cur) return;
   try {
-    let q = sb.from('ib_docs').select('owner,data').like('kind', TDK + '%').order('updated_at', {ascending: false}).limit(300);
+    let q = sb.from('ib_docs').select('owner,data').like('kind', TDV + '%').order('updated_at', {ascending: false}).limit(500);
     if (cur.role !== 'admin') q = q.eq('owner', cur.id);
     const r = await q; if (r.error) throw r.error;
-    tdCache = r.data.map(x => Object.assign({}, x.data, {owner: x.owner}));
-  } catch (e) { console.error(e); if ($('#td-list')) $('#td-list').innerHTML = '<div class="warn">Could not load the list. ' + esc(errMsg(e)) + '</div>'; return; }
+    tdVeh = r.data.map(x => Object.assign({}, x.data, {owner: x.owner})).sort((a, b) => String(a.created || '').localeCompare(String(b.created || '')));
+  } catch (e) {
+    console.error(e);
+    const tb = $('#td-db'); if (tb) tb.innerHTML = `<tr><td colspan="${cur.role === 'admin' ? 6 : 5}" class="empty">Could not load the list. ${esc(errMsg(e))}</td></tr>`;
+    return;
+  }
   tdDraw();
 }
 function tdDraw() {
-  const el = $('#td-list'); if (!el || tab !== 'td') return;
-  const adm = cur.role === 'admin';
-  const rows = tdCache.map(r => `<tr><td>${esc(fmtD(r.date))}</td><td>${esc(r.time)}</td><td>${esc(r.imei)}</td>${adm ? `<td>${esc(r.by || '')}<div class="small" style="color:var(--muted)">${esc(r.user || '')}</div></td>` : ''}<td><span class="ex ${r.ok ? 'ok' : 'dead'}">${r.ok ? 'Time updated' : 'Failed'}</span>${adm && r.error ? `<div class="small" style="color:var(--muted)">${esc(r.error)}</div>` : ''}</td>${adm ? `<td><button class="ghost danger" onclick="tdDelete('${r.owner}', '${r.id}')">Delete</button></td>` : ''}</tr>`).join('');
-  el.innerHTML = `<h3>${adm ? 'All updates' : 'My updates'}</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Time</th><th>IMEI</th>${adm ? '<th>User</th>' : ''}<th>Status</th>${adm ? '<th></th>' : ''}</tr></thead><tbody>${rows || `<tr><td colspan="${adm ? 6 : 4}" class="empty">No updates yet.</td></tr>`}</tbody></table></div>`;
+  const tb = $('#td-db'); if (!tb || tab !== 'td') return;
+  const adm = cur.role === 'admin', del = can('delete');
+  tb.innerHTML = tdVeh.length ? tdVeh.map((v, i) => `<tr class="${tdSel === v.owner + '/' + v.id ? 'sel' : ''}" onclick="tdSelect('${v.owner}', '${v.id}')">
+    <td>${i + 1}</td>${adm ? `<td>${esc(v.by || '')}<div class="small" style="color:var(--muted)">${esc(v.user || '')}</div></td>` : ''}
+    <td><b>0000</b></td><td><code>${esc(v.imei)}</code></td><td><span class="cnt">${+v.count || 0}</span></td>
+    <td><div class="pills"><button class="pill sel" onclick="event.stopPropagation(); tdSelect('${v.owner}', '${v.id}')">Select</button>
+      <button class="pill edt" onclick="event.stopPropagation(); tdForm('${v.owner}', '${v.id}')">Edit</button>
+      ${del ? `<button class="pill del" onclick="event.stopPropagation(); tdDelete('${v.owner}', '${v.id}')">Delete</button>` : ''}</div></td></tr>`).join('')
+    : `<tr><td colspan="${adm ? 6 : 5}" class="empty">No vehicles yet. Add a record or press START LOOP.</td></tr>`;
 }
-async function tdSend() {
-  if (tdSending || !cur || !can('td')) return;
-  const imei = $('#td-imei').value.replace(/\s+/g, '');
-  if (!/^\d{15}$/.test(imei)) { tdStatus('IMEI must be exactly 15 digits.', 'bad'); return; }
-  const adm = cur.role === 'admin', c = adm ? tdFormCfg() : tdCfg();
-  if (!c.ip || !(+c.port > 0 && +c.port < 65536)) { tdStatus('Server IP / port is not set. Ask the Admin.', 'bad'); return; }
-  tdSending = true; $('#td-go').disabled = true; tdStatus('Updating…');
-  if (adm) { tdAdminCfg = c; try { await sb.from('ib_docs').upsert({owner: cur.id, kind: 'tdcfg', data: c, updated_at: new Date().toISOString()}, {onConflict: 'owner,kind'}); } catch (e) { /* ignore */ } }
-  const seq = tdCache.filter(r => r.imei === imei).length + 1, packet = tdPacket(imei, c, seq);
-  if (adm && $('#td-pk')) $('#td-pk').textContent = packet;
-  let ok = false, err = '';
+function tdSelect(o, id) {
+  const v = tdFind(o, id); if (!v) return;
+  if (tdRun) { toast('Press STOP first.'); return; }
+  tdSel = o + '/' + id;
+  $('#td-imei').value = v.imei;
+  if (cur.role === 'admin') { if (v.lat && $('#tp-lat')) $('#tp-lat').value = v.lat; if (v.lon && $('#tp-lon')) $('#tp-lon').value = v.lon; }
+  tdDraw();
+}
+function tdForm(o, id) {
+  const v = id ? tdFind(o, id) : null, adm = cur.role === 'admin', c = tdCfg();
+  if (id && !v) return;
+  $('#paybox').innerHTML = `<h3>${v ? 'Edit Vehicle Record' : 'Add Vehicle Record'}</h3>
+    <div class="grid" style="grid-template-columns:1fr">
+      <div><label for="tm-imei">IMEI (15 digits)</label><input id="tm-imei" inputmode="numeric" maxlength="15" value="${esc(v ? v.imei : '')}" autocomplete="off"></div>
+      ${adm ? `<div class="grid" style="grid-template-columns:1fr 1fr"><div><label for="tm-lat">Lat</label><input id="tm-lat" value="${esc(v && v.lat ? v.lat : c.lat)}"></div><div><label for="tm-lon">Lon</label><input id="tm-lon" value="${esc(v && v.lon ? v.lon : c.lon)}"></div></div>` : ''}
+    </div>
+    <div class="row-actions" style="margin-top:14px"><button class="btn" onclick="tdFormSave('${o || ''}', '${id || ''}')">Save Record</button><button class="ghost" onclick="closePay()">Cancel</button></div>`;
+  $('#pay').hidden = false;
+}
+async function tdFormSave(o, id) {
+  const imei = $('#tm-imei').value.replace(/\s+/g, ''), adm = cur.role === 'admin', c = tdCfg();
+  if (!/^\d{15}$/.test(imei)) { toast('IMEI must be exactly 15 digits.'); return; }
+  const lat = adm && $('#tm-lat') ? $('#tm-lat').value.trim() : '', lon = adm && $('#tm-lon') ? $('#tm-lon').value.trim() : '';
+  if (adm && (!Number.isFinite(parseFloat(lat)) || !Number.isFinite(parseFloat(lon)))) { toast('Lat and Lon must be numbers.'); return; }
+  try {
+    if (id) {
+      const r = tdFind(o, id); if (!r) return;
+      if (tdVeh.some(x => x.owner === r.owner && x.imei === imei && x.id !== id)) { toast('This IMEI is already in the list.'); return; }
+      const old = {imei: r.imei, lat: r.lat, lon: r.lon};
+      r.imei = imei; if (adm) { r.lat = lat; r.lon = lon; }
+      try { await tdSaveRec(r); } catch (e) { Object.assign(r, old); throw e; }
+    } else {
+      if (tdVeh.some(x => x.owner === cur.id && x.imei === imei)) { toast('This IMEI is already in the list.'); return; }
+      const r = {id: uid(), owner: cur.id, imei, lat: adm ? lat : c.lat, lon: adm ? lon : c.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()};
+      await tdSaveRec(r); tdVeh.push(r);
+    }
+    closePay(); toast('Record saved'); tdDraw();
+  } catch (e) { console.error(e); toast('Could not save: ' + errMsg(e)); }
+}
+async function tdDelete(o, id) {
+  if (!can('delete')) return;
+  const v = tdFind(o, id); if (!v || !confirm('Delete vehicle record with IMEI ' + v.imei + '?')) return;
+  try {
+    const r = await sb.from('ib_docs').delete().eq('owner', v.owner).eq('kind', TDV + id).select();
+    if (r.error) throw r.error;
+    if (!r.data || !r.data.length) { toast('Not deleted. Supabase policy may not allow this row to be deleted.'); return; }
+    tdVeh = tdVeh.filter(x => !(x.owner === o && x.id === id)); if (tdSel === o + '/' + id) tdSel = '';
+    tdDraw(); toast('Record deleted');
+  } catch (e) { console.error(e); toast('Could not delete: ' + errMsg(e)); }
+}
+async function tdCount(j) { // one more packet sent for this IMEI
+  let rec = tdVeh.find(v => v.owner === j.owner && v.imei === j.imei);
+  if (!rec) { rec = {id: uid(), owner: j.owner, imei: j.imei, lat: j.lat, lon: j.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()}; tdVeh.push(rec); }
+  rec.count = (+rec.count || 0) + 1; rec.last = new Date().toISOString();
+  try { await tdSaveRec(rec); } catch (e) { console.error(e); toast('Packet count could not be saved: ' + errMsg(e)); }
+  tdDraw();
+}
+
+/* send loop */
+async function tdStart() {
+  if (tdRun || !cur || !can('td')) return;
+  const adm = cur.role === 'admin', imei = ($('#td-imei').value || '').replace(/\s+/g, '');
+  if (!/^\d{15}$/.test(imei)) { tdStatus('IMEI must be exactly 15 digits.', 'err'); return; }
+  if (!adm) await tdFreshUser();
+  const c = adm ? tdReadCfg('tp') : tdCfg();
+  if (!c.ip || !(+c.port > 0 && +c.port < 65536)) { tdStatus('Server IP / port is not set. Ask the Admin.', 'err'); return; }
+  let sel = tdSel ? tdVeh.find(v => v.owner + '/' + v.id === tdSel) : null;
+  if (!sel || sel.imei !== imei) sel = tdVeh.find(v => v.owner === cur.id && v.imei === imei) || null;
+  const num = (x, d) => { const n = parseFloat(x); return Number.isFinite(n) ? n : parseFloat(d); };
+  const fix = (n, d) => Number.isFinite(n) ? n : parseFloat(d);
+  const lat = fix(adm ? num(c.lat, TD_DEF.lat) : num(sel && sel.lat, c.lat), TD_DEF.lat), lon = fix(adm ? num(c.lon, TD_DEF.lon) : num(sel && sel.lon, c.lon), TD_DEF.lon);
+  tdJob = {imei, c, adm, lat, lon, owner: sel ? sel.owner : cur.id};
+  tdRun = true; tdSent = 0; tdPkt = '';
+  tdUI(); tdStatus('Starting loop…', 'run');
+  tdLoop();
+}
+function tdStop() {
+  const was = tdRun;
+  tdRun = false; clearTimeout(tdTimer); tdJob = null;
+  tdUI();
+  if (was) tdStatus('Stopped. ' + tdSent + ' packet(s) sent.', '');
+}
+async function tdLoop() {
+  if (!tdRun) return;
+  if (tdBusy) { tdTimer = setTimeout(tdLoop, 500); return; }
+  tdBusy = true;
+  try { await tdSendOnce(); } catch (e) { console.error(e); } finally { tdBusy = false; }
+  if (tdRun) tdTimer = setTimeout(tdLoop, TD_EVERY * 1000);
+}
+async function tdSendOnce() {
+  const j = tdJob; if (!j) return;
+  const rec = tdVeh.find(v => v.owner === j.owner && v.imei === j.imei);
+  const packet = tdPacket(j.imei, j.lat, j.lon, ((rec && +rec.count) || 0) + 1);
+  tdPkt = j.adm ? packet : ''; const pk = $('#td-pk'); if (pk) pk.textContent = tdPkt;
+  tdStatus('Sending packet…', 'sending');
+  let ok = false, err = '', res = {};
   try {
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 20000);
-    const r = await fetch(c.url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ip: c.ip, port: +c.port, packet, imei, append_crlf: false, wait_reply: true, timeout: 5}), signal: ctl.signal});
+    const r = await fetch(j.c.url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ip: j.c.ip, port: +j.c.port, packet, imei: j.imei, append_crlf: false, wait_reply: true, timeout: 5}), signal: ctl.signal});
     clearTimeout(t);
-    const j = await r.json(); ok = !!(j && j.ok); err = ok ? '' : ((j && j.error) || 'Server did not accept the data');
+    res = await r.json(); ok = !!(res && res.ok); err = ok ? '' : ((res && res.error) || 'Server did not accept the data');
   } catch (e) { err = e.name === 'AbortError' ? 'Server took too long' : 'Could not reach the server'; }
-  const d = new Date(), z = n => String(n).padStart(2, '0'), id = uid();
-  const log = {id, imei, date: today(), time: z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()), ok, error: err, by: cur.name || cur.username, user: cur.username, created: d.toISOString()};
-  if (adm) { log.ip = c.ip; log.port = c.port; }
-  try {
-    const w = await sb.from('ib_docs').upsert({owner: cur.id, kind: TDK + id, data: log, updated_at: d.toISOString()}, {onConflict: 'owner,kind'}); if (w.error) throw w.error;
-    tdCache.unshift(Object.assign({owner: cur.id}, log)); tdDraw();
-  } catch (e) { console.error(e); toast('Result could not be saved: ' + errMsg(e)); }
-  tdStatus(ok ? 'Time updated successfully (' + log.time + ')' : 'Time update failed: ' + (adm ? err : 'data was not updated. Try again.'), ok ? 'ok' : 'bad');
-  tdSending = false; const b = $('#td-go'); if (b) b.disabled = false;
+  if (ok) { tdSent++; await tdCount(j); }
+  if (!tdRun) return; // stopped while this packet was on its way
+  if (ok) tdStatus('Packet #' + tdSent + ' sent · ' + (res.sent_bytes || 0) + ' bytes · ' + (res.latency_ms || 0) + ' ms' + (res.reply ? '\nReply: ' + res.reply : ''), 'run');
+  else tdStatus('Failed: ' + (j.adm ? err : 'the update was not sent') + ' (retrying…)', 'err');
 }
-async function tdDelete(owner, id) {
+
+/* Admin: save IP / port once, for Admin and for every user account */
+async function tdSave() {
   if (!cur || cur.role !== 'admin') return;
-  if (!confirm('Delete this record? This cannot be undone.')) return;
+  const raw = id => ($('#tp-' + id) ? $('#tp-' + id).value.trim() : '');
+  const c = tdReadCfg('tp');
+  if (!raw('ip')) { toast('Enter the Server IP.'); return; }
+  if (!(+c.port > 0 && +c.port < 65536) || !/^\d+$/.test(c.port)) { toast('Port must be a number from 1 to 65535.'); return; }
+  if (!Number.isFinite(parseFloat(c.lat)) || !Number.isFinite(parseFloat(c.lon))) { toast('Lat and Lon must be numbers.'); return; }
+  if (!/^https?:\/\//i.test(raw('url') || 'https://')) { toast('Send address must start with https://'); return; }
+  const btn = $('#td-save'); if (btn) btn.disabled = true;
   try {
-    const r = await sb.from('ib_docs').delete().eq('owner', owner).eq('kind', TDK + id).select();
-    if (r.error) throw r.error;
-    if (!r.data || !r.data.length) { toast('Not deleted. Supabase policy may not allow Admin to delete this row.'); return; }
-    tdCache = tdCache.filter(x => !(x.id === id && x.owner === owner)); tdDraw(); toast('Record deleted');
-  } catch (e) { console.error(e); toast('Could not delete: ' + errMsg(e)); }
+    const w = await sb.from('ib_docs').upsert({owner: cur.id, kind: 'tdcfg', data: c, updated_at: new Date().toISOString()}, {onConflict: 'owner,kind'});
+    if (w.error) throw w.error;
+    tdAdminCfg = c;
+    await loadUsers();
+    let n = 0;
+    for (const u of usersCache) {
+      const x = await sb.from('ib_profiles').update({perms: Object.assign({}, u.perms || {}, {_td: c})}).eq('id', u.id);
+      if (x.error) throw x.error;
+      n++;
+    }
+    usersLoaded = false;
+    toast('Saved. Applied to Admin and ' + n + ' user account(s).');
+  } catch (e) { console.error(e); toast('Could not save: ' + errMsg(e)); }
+  finally { const b = $('#td-save'); if (b) b.disabled = tdRun; }
 }
 
 /* ---------- create account (Admin only) ---------- */
@@ -2161,9 +2364,11 @@ async function renderUsers() {
     catch (e) { $('#main').innerHTML = '<div class="warn">Could not load accounts. Has the SQL been run in Supabase? ' + esc(e.message || '') + '</div>'; return; }
     if (tab !== 'users') return;
   }
+  await tdEnsureAdminCfg();
+  if (tab !== 'users') return;
   const users = usersCache;
   const u = users.find(x => x.id === editU) || {username: '', name: '', phone: '', gstin: '', address: '', prefix: 'INV-', perms: Object.fromEntries(DEF_PERMS.map(k => [k, true]))};
-  const pm = u.perms || {}, tdc = Object.assign({}, TD_DEF, pm._td || {});
+  const pm = u.perms || {}, tdc = tdNorm(editU ? pm._td : tdAdminCfg);
   const oAdmin = oldData(KEY), oUsers = oldUsers();
   const hasOld = !viewing() && ((oAdmin && (oldBills(oAdmin) || (oAdmin.products || []).length || (oAdmin.customers || []).length)) || oUsers.length);
   $('#main').innerHTML = `
@@ -2193,8 +2398,8 @@ async function renderUsers() {
         <div><label for="td-port">Port</label><input id="td-port" inputmode="numeric" value="${esc(tdc.port)}"></div>
         <div><label for="td-lat">Lat</label><input id="td-lat" value="${esc(tdc.lat)}"></div>
         <div><label for="td-lon">Lon</label><input id="td-lon" value="${esc(tdc.lon)}"></div>
-        <div><label for="td-veh">Vehicle number</label><input id="td-veh" value="${esc(tdc.veh)}"></div>
-        <div><label for="td-url">send.php address</label><input id="td-url" value="${esc(tdc.url)}"></div>
+        
+        <div><label for="td-url">Send address (Supabase function)</label><input id="td-url" value="${esc(tdc.url)}"></div>
       </div>
       <div class="row-actions" style="margin-top:16px">
         <button class="btn" id="usave" onclick="saveUser()">${editU ? 'Update account' : 'Create account'}</button>
@@ -2240,7 +2445,7 @@ async function saveUser() {
   if (!name) { toast('Enter the company name.'); return; }
   const perms = {}; PERMS.forEach(([k]) => perms[k] = $('#pm-' + k).checked);
   if (!Object.values(perms).some(Boolean)) { toast('Give at least one right.'); return; }
-  const data = {name, phone: $('#uph').value.trim(), gstin: $('#ug').value.trim().toUpperCase(), address: $('#ua').value.trim(), logo: tmpLogo, perms: Object.assign({}, perms, {_td: tdFormCfg()})};
+  const data = {name, phone: $('#uph').value.trim(), gstin: $('#ug').value.trim().toUpperCase(), address: $('#ua').value.trim(), logo: tmpLogo, perms: Object.assign({}, perms, {_td: tdReadCfg('td')})};
   const btn = $('#usave'); btn.disabled = true;
   try {
     if (editU) {
@@ -2344,6 +2549,7 @@ async function login() {
 }
 function endSession() {
   clearTimeout(syncTimer); dirty = false; syncing = false;
+  tdStop(); tdAdminCfg = null; tdVeh = []; tdSel = ''; tdSent = 0; tdPkt = ''; tdMsg = {t: 'Result will appear here', s: ''};
   cur = null; acct = null; db = defaults(); remote = {core: {}, invoices: []}; sent = {core: '', inv: {}};
   rrSeen = null; rrCache = []; setRRBadge(0);
   closeViewer(); closePay(); $('#choice').hidden = true; $('#main').innerHTML = ''; $('#viewbar').hidden = true;
