@@ -303,7 +303,6 @@ aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6
 .tdp #td-start{background:#2196f3}
 .tdp #td-stop{background:#f44336}
 .tdp #td-save{background:#4f46e5;width:100%}
-.tdp #td-chk{background:#0d9488;width:100%}
 .tdp .tbtn:disabled{opacity:.45;pointer-events:none}
 .tdp .tnote{font-size:12px;color:var(--muted);margin-top:-4px}
 .tdp .status{border-radius:20px;background:rgba(255,255,255,.6);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.8);padding:18px 20px;box-shadow:0 8px 32px rgba(31,38,135,.08)}
@@ -2146,21 +2145,20 @@ async function renderTD() {
   <div class="tdp"><div class="td-layout">
     <div class="glass"><div class="stack">
       ${fld('td-imei', 'IMEI', tdJob ? tdJob.imei : '', `inputmode="numeric" maxlength="15" placeholder="15 digit IMEI" data-lock onkeydown="if (event.key === 'Enter') tdStart()"`)}
-      ${fld('td-veh', 'Vehicle No', tdJob ? tdJob.veh || '' : '', `placeholder="e.g. UP79AT4176" style="text-transform:uppercase" onkeydown="if (event.key === 'Enter') tdCheckBtn()"`)}
-      ${adm ? `<div class="two">${fld('tp-lat', 'Lat', c.lat, `inputmode="decimal" data-lock oninput="tdLatPaste(this)"`)}${fld('tp-lon', 'Lon', c.lon, `inputmode="decimal" data-lock`)}</div>
+      ${adm ? `${fld('tp-veh', 'Vehicle No', '0000', 'readonly')}
+      <div class="two">${fld('tp-lat', 'Lat', c.lat, `inputmode="decimal" data-lock oninput="tdLatPaste(this)"`)}${fld('tp-lon', 'Lon', c.lon, `inputmode="decimal" data-lock`)}</div>
       ${fld('tp-ip', 'Server IP', c.ip, 'data-lock')}
       ${fld('tp-port', 'Port', c.port, `inputmode="numeric" data-lock`)}
       ${fld('tp-url', 'Send address (Supabase function)', c.url, 'data-lock')}` : ''}
       <div class="btns"><button class="tbtn" id="td-start" onclick="tdStart()">START LOOP</button><button class="tbtn" id="td-stop" onclick="tdStop()" disabled>STOP</button></div>
-      <button class="tbtn" id="td-chk" onclick="tdCheckBtn()">CHECK VEHICLE STATUS</button>
       ${adm ? `<button class="tbtn" id="td-save" data-lock onclick="tdSave()">SAVE IP &amp; PORT</button><div class="tnote">Saved settings are also applied to all user accounts. Users only enter the IMEI.</div>` : ''}
     </div></div>
     <div>
       <div class="status"><h3><i class="dot" id="td-dot"></i>Status:</h3><div id="td-msg"></div>${adm ? '<div id="td-pk"></div>' : ''}</div>
       <div class="db-section glass">
-        <div class="db-head"><h2>Vehicle Database</h2><div class="pills"><button class="pill edt" onclick="tdVltdAll()">Check all status</button><button class="pill add" onclick="tdForm()">+ Add Record</button></div></div>
-        <div class="tw"><table><thead><tr><th>Serial no</th>${adm ? '<th>User</th>' : ''}<th>Vehicle Number</th><th>IMEI</th><th>count of packets send</th><th>Last updated</th><th>VLTD status</th><th>action</th></tr></thead>
-          <tbody id="td-db"><tr><td colspan="${adm ? 8 : 7}" class="empty">Loading…</td></tr></tbody></table></div>
+        <div class="db-head"><h2>Vehicle Database</h2><button class="pill add" onclick="tdForm()">+ Add Record</button></div>
+        <div class="tw"><table><thead><tr><th>Serial no</th>${adm ? '<th>User</th>' : ''}<th>Vehicle Number</th><th>IMEI</th><th>count of packets send</th><th>Last updated</th><th>action</th></tr></thead>
+          <tbody id="td-db"><tr><td colspan="${adm ? 7 : 6}" class="empty">Loading…</td></tr></tbody></table></div>
       </div>
     </div>
   </div></div>`;
@@ -2182,8 +2180,7 @@ function tdUI() {
 const tdFind = (o, id) => tdVeh.find(v => v.owner === o && v.id === id);
 const tdRow = r => { const d = Object.assign({}, r); delete d.owner; return {owner: r.owner, kind: TDV + r.id, data: d, updated_at: new Date().toISOString()}; };
 const tdFmtDT = s => { if (!s) return ''; const d = new Date(s); if (isNaN(d)) return ''; const z = n => String(n).padStart(2, '0'); return z(d.getDate()) + '-' + z(d.getMonth() + 1) + '-' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()); };
-const TD_VLTD = 'https://xudvdqopdntcgnwzkiny.supabase.co/functions/v1/bright-endpoint'; // Supabase function that checks vtsdgm.up.in
-async function tdSaveRec(r, keep) { if (!keep) r.updated = new Date().toISOString(); const w = await sb.from('ib_docs').upsert(tdRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error; }
+async function tdSaveRec(r) { r.updated = new Date().toISOString(); const w = await sb.from('ib_docs').upsert(tdRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error; }
 async function tdLoad() {
   if (!cur) return;
   try {
@@ -2193,7 +2190,7 @@ async function tdLoad() {
     tdVeh = r.data.map(x => Object.assign({}, x.data, {owner: x.owner})).sort((a, b) => String(a.created || '').localeCompare(String(b.created || '')));
   } catch (e) {
     console.error(e);
-    const tb = $('#td-db'); if (tb) tb.innerHTML = `<tr><td colspan="${cur.role === 'admin' ? 8 : 7}" class="empty">Could not load the list. ${esc(errMsg(e))}</td></tr>`;
+    const tb = $('#td-db'); if (tb) tb.innerHTML = `<tr><td colspan="${cur.role === 'admin' ? 7 : 6}" class="empty">Could not load the list. ${esc(errMsg(e))}</td></tr>`;
     return;
   }
   tdDraw();
@@ -2203,21 +2200,18 @@ function tdDraw() {
   const adm = cur.role === 'admin', del = adm; // delete: only super admin
   tb.innerHTML = tdVeh.length ? tdVeh.map((v, i) => `<tr class="${tdSel === v.owner + '/' + v.id ? 'sel' : ''}" onclick="tdSelect('${v.owner}', '${v.id}')">
     <td>${i + 1}</td>${adm ? `<td>${esc(v.by || '')}<div class="small" style="color:var(--muted)">${esc(v.user || '')}</div></td>` : ''}
-    <td><b>${esc(v.vehicle || '—')}</b></td><td><code>${esc(v.imei)}</code></td><td><span class="cnt">${+v.count || 0}</span></td>
+    <td><b>0000</b></td><td><code>${esc(v.imei)}</code></td><td><span class="cnt">${+v.count || 0}</span></td>
     <td>${esc(tdFmtDT(v.updated || v.last || v.created))}</td>
-    <td>${v.vltd ? `<span class="ex ${/^active$/i.test(v.vltd) ? 'ok' : 'dead'}">${esc(v.vltd)}</span><div class="small" style="color:var(--muted)">${esc(tdFmtDT(v.vltdAt))}</div>` : '<span class="ex">Not checked</span>'}
-      <div style="margin-top:4px"><button class="pill edt" id="vs-${v.owner}-${v.id}" onclick="event.stopPropagation(); tdVltdCheck('${v.owner}', '${v.id}')">Check</button></div></td>
     <td><div class="pills"><button class="pill sel" onclick="event.stopPropagation(); tdSelect('${v.owner}', '${v.id}')">Select</button>
       <button class="pill edt" onclick="event.stopPropagation(); tdForm('${v.owner}', '${v.id}')">Edit</button>
       ${del ? `<button class="pill del" onclick="event.stopPropagation(); tdDelete('${v.owner}', '${v.id}')">Delete</button>` : ''}</div></td></tr>`).join('')
-    : `<tr><td colspan="${adm ? 8 : 7}" class="empty">No vehicles yet. Add a record or press START LOOP.</td></tr>`;
+    : `<tr><td colspan="${adm ? 7 : 6}" class="empty">No vehicles yet. Add a record or press START LOOP.</td></tr>`;
 }
 function tdSelect(o, id) {
   const v = tdFind(o, id); if (!v) return;
   if (tdRun) { toast('Press STOP first.'); return; }
   tdSel = o + '/' + id;
   $('#td-imei').value = v.imei;
-  $('#td-veh').value = v.vehicle || '';
   if (cur.role === 'admin') { if (v.lat && $('#tp-lat')) $('#tp-lat').value = v.lat; if (v.lon && $('#tp-lon')) $('#tp-lon').value = v.lon; }
   tdDraw();
 }
@@ -2226,7 +2220,6 @@ function tdForm(o, id) {
   if (id && !v) return;
   $('#paybox').innerHTML = `<h3>${v ? 'Edit Vehicle Record' : 'Add Vehicle Record'}</h3>
     <div class="grid" style="grid-template-columns:1fr">
-      <div><label for="tm-veh">Vehicle number</label><input id="tm-veh" placeholder="e.g. UP79AT4176" style="text-transform:uppercase" value="${esc(v ? v.vehicle || '' : '')}" autocomplete="off"></div>
       <div><label for="tm-imei">IMEI (15 digits)</label><input id="tm-imei" inputmode="numeric" maxlength="15" value="${esc(v ? v.imei : '')}" autocomplete="off"></div>
       ${adm ? `<div class="grid" style="grid-template-columns:1fr 1fr"><div><label for="tm-lat">Lat</label><input id="tm-lat" value="${esc(v && v.lat ? v.lat : c.lat)}"></div><div><label for="tm-lon">Lon</label><input id="tm-lon" value="${esc(v && v.lon ? v.lon : c.lon)}"></div></div>` : ''}
     </div>
@@ -2236,21 +2229,18 @@ function tdForm(o, id) {
 async function tdFormSave(o, id) {
   const imei = $('#tm-imei').value.replace(/\s+/g, ''), adm = cur.role === 'admin', c = tdCfg();
   if (!/^\d{15}$/.test(imei)) { toast('IMEI must be exactly 15 digits.'); return; }
-  const veh = normVeh($('#tm-veh').value);
-  if (!veh) { toast('Enter the vehicle number.'); return; }
   const lat = adm && $('#tm-lat') ? $('#tm-lat').value.trim() : '', lon = adm && $('#tm-lon') ? $('#tm-lon').value.trim() : '';
   if (adm && (!Number.isFinite(parseFloat(lat)) || !Number.isFinite(parseFloat(lon)))) { toast('Lat and Lon must be numbers.'); return; }
   try {
     if (id) {
       const r = tdFind(o, id); if (!r) return;
       if (tdVeh.some(x => x.owner === r.owner && x.imei === imei && x.id !== id)) { toast('This IMEI is already in the list.'); return; }
-      const old = {imei: r.imei, lat: r.lat, lon: r.lon, vehicle: r.vehicle};
-      if (r.vehicle !== veh) { r.vltd = ''; r.vltdAt = ''; }
-      r.imei = imei; r.vehicle = veh; if (adm) { r.lat = lat; r.lon = lon; }
+      const old = {imei: r.imei, lat: r.lat, lon: r.lon};
+      r.imei = imei; if (adm) { r.lat = lat; r.lon = lon; }
       try { await tdSaveRec(r); } catch (e) { Object.assign(r, old); throw e; }
     } else {
       if (tdVeh.some(x => x.owner === cur.id && x.imei === imei)) { toast('This IMEI is already in the list.'); return; }
-      const r = {id: uid(), owner: cur.id, imei, vehicle: veh, vltd: '', vltdAt: '', lat: adm ? lat : c.lat, lon: adm ? lon : c.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()};
+      const r = {id: uid(), owner: cur.id, imei, lat: adm ? lat : c.lat, lon: adm ? lon : c.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()};
       await tdSaveRec(r); tdVeh.push(r);
     }
     closePay(); toast('Record saved'); tdDraw();
@@ -2267,63 +2257,9 @@ async function tdDelete(o, id) {
     tdDraw(); toast('Record deleted');
   } catch (e) { console.error(e); toast('Could not delete: ' + errMsg(e)); }
 }
-/* VLTD status from vtsdgm.up.in (checked through the Supabase function, the browser cannot call that site directly) */
-async function tdVltdCheck(o, id, quiet) {
-  const r = tdFind(o, id); if (!r) return false;
-  if (!r.vehicle) { if (!quiet) toast('Add the vehicle number first (Edit).'); return false; }
-  const b = $('#vs-' + o + '-' + id); if (b) { b.disabled = true; b.textContent = 'Checking…'; }
-  try {
-    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 30000);
-    const res = await fetch(TD_VLTD, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({vehicle: r.vehicle}), signal: ctl.signal});
-    clearTimeout(t);
-    const j = await res.json();
-    if (!j || !j.ok) throw new Error((j && j.error) || 'Status not found');
-    r.vltd = /^active$/i.test(String(j.status).trim()) ? 'Active' : 'Inactive'; r.vltdAt = new Date().toISOString();
-    await tdSaveRec(r, true); tdDraw();
-    if (!quiet) toast(r.vehicle + ': ' + r.vltd);
-    return true;
-  } catch (e) {
-    console.error(e); if (!quiet) toast('Could not check status: ' + (e.name === 'AbortError' ? 'server took too long' : e.message));
-    if (b) { b.disabled = false; b.textContent = 'Check'; }
-    return false;
-  }
-}
-/* "CHECK VEHICLE STATUS" button: IMEI + vehicle number typed on the left, saved in the list, then status is checked */
-async function tdCheckBtn() {
-  if (!cur || !can('td')) return;
-  const imei = ($('#td-imei').value || '').replace(/\s+/g, ''), veh = normVeh($('#td-veh').value);
-  if (!/^\d{15}$/.test(imei)) { tdStatus('Enter the 15 digit IMEI first.', 'err'); return; }
-  if (!veh) { tdStatus('Enter the vehicle number.', 'err'); return; }
-  const btn = $('#td-chk'); if (btn) btn.disabled = true;
-  try {
-    let rec = (tdSel && tdVeh.find(v => v.owner + '/' + v.id === tdSel && v.imei === imei)) || tdVeh.find(v => v.owner === cur.id && v.imei === imei);
-    if (!rec) {
-      const c = tdCfg();
-      rec = {id: uid(), owner: cur.id, imei, vehicle: veh, vltd: '', vltdAt: '', lat: c.lat, lon: c.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()};
-      await tdSaveRec(rec); tdVeh.push(rec);
-    } else if (rec.vehicle !== veh) {
-      rec.vehicle = veh; rec.vltd = ''; rec.vltdAt = '';
-      await tdSaveRec(rec);
-    }
-    tdDraw();
-    tdStatus('Checking status of ' + veh + '…', 'sending');
-    const ok = await tdVltdCheck(rec.owner, rec.id, true);
-    if (ok) tdStatus(veh + ': VLTD ' + rec.vltd + (rec.vltd === 'Active' ? '' : ' (not active)'), rec.vltd === 'Active' ? 'run' : 'err');
-    else tdStatus('Could not check the status of ' + veh + '. Please try again.', 'err');
-  } catch (e) { console.error(e); tdStatus('Could not save: ' + errMsg(e), 'err'); }
-  finally { const b = $('#td-chk'); if (b) b.disabled = false; }
-}
-async function tdVltdAll() {
-  const list = tdVeh.filter(v => v.vehicle);
-  if (!list.length) { toast('No vehicle numbers added yet.'); return; }
-  let n = 0;
-  for (const v of list) { if (await tdVltdCheck(v.owner, v.id, true)) n++; }
-  toast('Status checked for ' + n + ' of ' + list.length + ' vehicle(s).');
-}
 async function tdCount(j) { // one more packet sent for this IMEI
   let rec = tdVeh.find(v => v.owner === j.owner && v.imei === j.imei);
-  if (!rec) { rec = {id: uid(), owner: j.owner, imei: j.imei, vehicle: j.veh || '', lat: j.lat, lon: j.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()}; tdVeh.push(rec); }
-  if (j.veh && !rec.vehicle) rec.vehicle = j.veh;
+  if (!rec) { rec = {id: uid(), owner: j.owner, imei: j.imei, lat: j.lat, lon: j.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()}; tdVeh.push(rec); }
   rec.count = (+rec.count || 0) + 1; rec.last = new Date().toISOString();
   try { await tdSaveRec(rec); } catch (e) { console.error(e); toast('Packet count could not be saved: ' + errMsg(e)); }
   tdDraw();
@@ -2342,7 +2278,7 @@ async function tdStart() {
   const num = (x, d) => { const n = parseFloat(x); return Number.isFinite(n) ? n : parseFloat(d); };
   const fix = (n, d) => Number.isFinite(n) ? n : parseFloat(d);
   const lat = fix(adm ? num(c.lat, TD_DEF.lat) : num(sel && sel.lat, c.lat), TD_DEF.lat), lon = fix(adm ? num(c.lon, TD_DEF.lon) : num(sel && sel.lon, c.lon), TD_DEF.lon);
-  tdJob = {imei, c, adm, lat, lon, owner: sel ? sel.owner : cur.id, veh: normVeh(($('#td-veh') || {}).value)};
+  tdJob = {imei, c, adm, lat, lon, owner: sel ? sel.owner : cur.id};
   tdRun = true; tdSent = 0; tdPkt = '';
   tdUI(); tdStatus('Starting loop…', 'run');
   tdLoop();
