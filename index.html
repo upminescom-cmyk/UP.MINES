@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>IOT Billing Solution</title>
+<title>IoT Solution</title>
 <style>
 :root{
   --ink:#16202e; --ink-2:#2b3a4f; --paper:#f4f6f8; --card:#ffffff; --line:#d9dfe6;
@@ -18,7 +18,7 @@ aside h1{font-size:18px;margin:0 8px 18px;font-weight:700;letter-spacing:.2px}
 aside button{display:block;width:100%;text-align:left;background:none;border:0;color:#b9c4d2;padding:10px 12px;border-radius:6px;font:inherit;cursor:pointer;margin-bottom:2px}
 aside button:hover{background:var(--ink-2);color:#fff}
 aside button.on{background:var(--accent);color:#fff}
-main{flex:1;padding:24px;min-width:0;max-width:1500px;margin:0 auto}
+main{flex:1;padding:24px;min-width:0;width:100%}
 h2{margin:0 0 16px;font-size:22px}
 h3{margin:0 0 10px;font-size:16px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
@@ -336,7 +336,53 @@ aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6
 .tdp select.paysel.p-pending{background-color:#fef3c7;color:#b45309}
 .tdp select.paysel.p-done{background-color:#dcfce7;color:#15803d}
 .tdp select.paysel.p-bill{background-color:#dbeafe;color:#1d4ed8}
+.tdp span.paysel{height:32px;padding:0 14px;border-radius:999px;font:700 12px "Segoe UI",system-ui,sans-serif;white-space:nowrap}
+.tdp span.paysel.p-pending{background:#fef3c7;color:#b45309}.tdp span.paysel.p-done{background:#dcfce7;color:#15803d}.tdp span.paysel.p-bill{background:#dbeafe;color:#1d4ed8}
 .tdp .cnt{display:inline-block;padding:3px 10px;border-radius:12px;background:#dcfce7;color:#15803d;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+
+/* ===== modules: IoT Bill / IoT Mines ===== */
+#modbar{display:flex;gap:6px;margin:0 4px 14px}
+#modbar[hidden]{display:none}
+#modbar button{flex:1;text-align:center;margin:0;padding:8px 6px;border:1px solid #2b3a4f;font-weight:700;font-size:13px}
+#modbar button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+body.mines aside{background:#0c121b}
+body.mines aside button:hover{background:#1b2636}
+body.mines aside button.on,body.mines #modbar button.on{background:#d9a441;border-color:#d9a441;color:#14110a}
+body.mines main{background:#121923;color:#e6ebf2}
+body.mines main h2,body.mines main h3{color:#f3f6fa}
+body.mines main .card{background:#1a2230;border-color:#2a3647;color:#e6ebf2}
+body.mines main label,body.mines main th{color:#93a3b8}
+body.mines main th,body.mines main td{border-bottom-color:#2a3647}
+body.mines main thead,body.mines main thead tr,body.mines main th{background:transparent}
+body.mines main input,body.mines main select{background:#121923;border-color:#2f3d52;color:#e6ebf2}
+body.mines main .btn{background:#d9a441;color:#14110a}
+body.mines main .btn:hover{background:#e8b755}
+body.mines main button.ghost{color:#e6ebf2;border-color:#2f3d52}
+body.mines main button.ghost:hover{background:#243044}
+body.mines main button.danger{color:#ff9d94;border-color:#6b3430}
+body.mines main .empty{color:#93a3b8}
+body.mines main .warn{color:#3b2a00}
+body.mines main .perms label{color:#e6ebf2}
+body.mines main .small{color:#93a3b8}
+body.mines main .sec{color:#d9a441}
+body.mines #toast{background:#d9a441;color:#14110a}
+.mn .hero{position:relative;border-radius:14px;overflow:hidden;border:1px solid #2a3647;margin-bottom:16px;background:#151c27;box-shadow:0 18px 40px rgba(0,0,0,.35)}
+.mn .hero svg{display:block;width:100%;height:auto;min-height:260px}
+.mn .hero .ttl{position:absolute;left:24px;top:18px;right:24px;pointer-events:none}
+.mn .hero .ttl h2{margin:0 0 4px;font-size:26px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.mn .hero .ttl p{margin:0;color:#c3cddb;font-size:14px;max-width:520px}
+.mn .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.mn .kpi{background:linear-gradient(160deg,#1f2938,#161d29);border:1px solid #2a3647;border-radius:12px;padding:14px 16px;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+.mn .kpi b{display:block;font-size:26px;color:#f1c36a;font-variant-numeric:tabular-nums}
+.mn .kpi span{font-size:12px;color:#93a3b8;letter-spacing:.3px;text-transform:uppercase}
+.mn .tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700}
+.mn .tag.run{background:#12361f;color:#6ee7a0}.mn .tag.idle{background:#3a3217;color:#f1c36a}.mn .tag.maint{background:#3b1c1c;color:#ff9d94}
+@keyframes pinb{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes dashm{to{stroke-dashoffset:-60}}
+@keyframes pulse{0%,100%{opacity:.25;r:12}50%{opacity:.5;r:17}}
+.mn .pin{animation:pinb 2.4s ease-in-out infinite}
+.mn .route{animation:dashm 3s linear infinite}
+@media (prefers-reduced-motion:reduce){.mn .pin,.mn .route{animation:none}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.js"></script>
 </head>
@@ -345,10 +391,10 @@ aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6
   <svg class="rings" viewBox="0 0 1000 1000" aria-hidden="true"><circle cx="500" cy="500" r="120" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="1.2"/><circle cx="500" cy="500" r="220" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.2" stroke-dasharray="4 10"/><circle cx="500" cy="500" r="330" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1.2"/><circle cx="500" cy="500" r="440" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="1.2" stroke-dasharray="2 14"/><circle cx="500" cy="500" r="540" fill="none" stroke="rgba(255,255,255,.05)" stroke-width="1.2"/><circle cx="500" cy="280" r="5" fill="#f2a93b" opacity=".75"/><circle cx="830" cy="500" r="5" fill="#f2a93b" opacity=".75"/><circle cx="300" cy="820" r="5" fill="#f2a93b" opacity=".75"/><circle cx="190" cy="380" r="5" fill="#f2a93b" opacity=".75"/></svg>
   <div class="lbrand">
     <svg viewBox="0 0 34 34" fill="none" aria-hidden="true"><circle cx="17" cy="17" r="4" fill="#f2a93b"/><path d="M8 17a9 9 0 0 1 9-9M26 17a9 9 0 0 1-9 9M3.5 17A13.5 13.5 0 0 1 17 3.5M30.5 17A13.5 13.5 0 0 1 17 30.5" stroke="#7de0d0" stroke-width="2.2" stroke-linecap="round"/></svg>
-    IOT Billing Solution
+    IoT Solution
   </div>
   <div class="lcard">
-    <h2>Welcome back</h2><div class="sub">Sign in to open your billing software.</div>
+    <h2>Welcome back</h2><div class="sub">Sign in to open your IoT Bill / IoT Mines software.</div>
     <div class="f"><label for="lu">User ID</label><input id="lu" autocomplete="username" placeholder="Enter your user ID" onkeydown="if(event.key==='Enter')$('#lp').focus()"></div>
     <div class="f"><label for="lp">Password</label>
       <div class="pwbox"><input id="lp" type="password" autocomplete="current-password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')login()">
@@ -368,6 +414,7 @@ aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6
   <aside>
     <h1 id="brand">Billing</h1>
     <div id="viewbar" hidden></div>
+    <div id="modbar" hidden></div>
     <button data-tab="dash">Dashboard</button>
     <button data-tab="new">Create invoice</button>
     <button data-tab="invoices">Invoice</button>
@@ -379,6 +426,9 @@ aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6
     <button data-tab="acc">Account details</button>
     <button data-tab="wa">WhatsApp settings</button>
     <button data-tab="settings">Settings</button>
+    <button data-tab="mdash">Mines Dashboard</button>
+    <button data-tab="mtrucks">Trucks</button>
+    <button data-tab="mtrips">Trips &amp; Loads</button>
     <button data-tab="users">Create account</button>
     <button class="out" onclick="logout()">Log out</button>
     <div id="sync" class="ok"></div>
@@ -413,13 +463,14 @@ const today = () => { const d = new Date(); return d.getFullYear() + '-' + Strin
 function defaults() {
   return {
     settings: {prefix: 'INV-', nextNo: 1, note: 'Thank you for your business.'},
-    businesses: [], defaultBiz: '', products: [], customers: [], invoices: [], devices: []
+    businesses: [], defaultBiz: '', products: [], customers: [], invoices: [], devices: [],
+    mines: {trucks: [], trips: []}
   };
 }
 function build(d) {
   d = d || {};
   const base = defaults(), o = d.settings || {};
-  const r = {settings: Object.assign(base.settings, {prefix: o.prefix, nextNo: o.nextNo, note: o.note, pay: o.pay || {}, wa: o.wa || {}}), businesses: d.businesses || [], defaultBiz: d.defaultBiz || '', products: d.products || [], customers: d.customers || [], invoices: d.invoices || [], estimates: d.estimates || [], devices: Array.isArray(d.devices) ? d.devices : []};
+  const r = {settings: Object.assign(base.settings, {prefix: o.prefix, nextNo: o.nextNo, note: o.note, pay: o.pay || {}, wa: o.wa || {}}), businesses: d.businesses || [], defaultBiz: d.defaultBiz || '', products: d.products || [], customers: d.customers || [], invoices: d.invoices || [], estimates: d.estimates || [], devices: Array.isArray(d.devices) ? d.devices : [], mines: {trucks: (d.mines && d.mines.trucks) || [], trips: (d.mines && d.mines.trips) || []}};
   if (acct && acct.role === 'user') { // company details are fixed by Admin
     if (!d.settings) r.settings.prefix = acct.prefix || 'INV-';
     const seed = {id: 'co-' + acct.id, name: acct.name, address: acct.address || '', phone: acct.phone || '', gstin: acct.gstin || '', logo: acct.logo || ''};
@@ -450,7 +501,7 @@ const errMsg = e => /already registered|already exists/i.test((e && e.message) |
 let remote = {core: {}, invoices: []}, sent = {core: '', inv: {}};
 let dirty = false, syncing = false, syncTimer = null, syncFail = 0, lastPull = 0;
 const idTime = id => parseInt(String(id).slice(0, -4), 36) || 0;
-const coreOf = x => ({settings: x.settings, businesses: x.businesses, defaultBiz: x.defaultBiz, products: x.products, customers: x.customers, devices: x.devices, estimates: x.estimates});
+const coreOf = x => ({settings: x.settings, businesses: x.businesses, defaultBiz: x.defaultBiz, products: x.products, customers: x.customers, devices: x.devices, estimates: x.estimates, mines: x.mines});
 function load() { return build(Object.assign({}, remote.core, {invoices: remote.invoices})); }
 function setSync(cls, msg) { const el = $('#sync'); if (el) { el.className = cls; el.textContent = msg; } }
 function chunkRows(items) { // split rows so one request is not too big
@@ -551,7 +602,7 @@ async function getSig(owner) { // cheap fingerprint of what is online (no big da
 function refreshView() {
   const ae = document.activeElement;
   if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) return; // do not disturb typing
-  if (['dash', 'invoices', 'inv', 'products', 'customers'].includes(tab) && !(tab === 'inv' && editD)) go(tab);
+  if (['dash', 'invoices', 'inv', 'products', 'customers', 'mdash', 'mtrucks', 'mtrips'].includes(tab) && !(tab === 'inv' && editD)) go(tab);
 }
 async function checkRemote(quiet) {
   if (checking || !cur || !acct || dirty || syncing || document.hidden) return;
@@ -593,25 +644,50 @@ const lineAmt = it => (+it.qty || 0) * (+it.price || 0);
 
 /* ---------- navigation ---------- */
 let tab = 'dash';
-const TABS = ['dash', 'new', 'invoices', 'inv', 'rr', 'td', 'products', 'customers', 'acc', 'wa', 'settings', 'users'];
+const TABS = ['dash', 'new', 'invoices', 'inv', 'rr', 'td', 'products', 'customers', 'acc', 'wa', 'settings', 'mdash', 'mtrucks', 'mtrips', 'users'];
+const MINE_TABS = ['mdash', 'mtrucks', 'mtrips'];
+const MODS = [['bill', 'IoT Bill'], ['mines', 'IoT Mines']];
+let curMod = 'bill';
+const modOf = t => MINE_TABS.includes(t) ? 'mines' : (t === 'users' ? '*' : 'bill');
+const hasMod = m => { if (!cur) return false; if (cur.role === 'admin') return true; const l = cur.perms && cur.perms._mods; return (Array.isArray(l) ? l : ['bill']).includes(m); };
 const ADMIN_ONLY = ['products', 'customers', 'acc', 'wa', 'settings', 'users']; // normal users see only: Dashboard, Create invoice, Invoice, Inventory, Recharge Request
 const PMAP = {acc: 'settings', wa: 'settings', rr: 'recharge'};
 const NEWP = {addcust: 'customers', invadd: 'inv', invbulk: 'inv', recharge: 'new'}; // new rights follow the old right until Admin saves the account
 const pv = (m, k) => m[k] !== undefined || !NEWP[k] ? m[k] : m[NEWP[k]];
-const can = p => { const o = p; p = PMAP[p] || p; if (!cur) return false; if (cur.role === 'admin') return true; if (p === 'users' || ADMIN_ONLY.includes(o)) return false; return !!pv(cur.perms || {}, p); };
-const firstTab = () => TABS.find(can);
-function applyNav() { document.querySelectorAll('aside button[data-tab]').forEach(b => b.hidden = !can(b.dataset.tab)); }
+const can = p => {
+  const o = p; p = PMAP[p] || p; if (!cur) return false;
+  if (MINE_TABS.includes(p)) return hasMod('mines') && (cur.role === 'admin' || !!(cur.perms || {})[p]);
+  if (cur.role === 'admin') return true;
+  if (p === 'users' || ADMIN_ONLY.includes(o)) return false;
+  return hasMod('bill') && !!pv(cur.perms || {}, p);
+};
+const canM = k => !!cur && hasMod('mines') && (cur.role === 'admin' || !!(cur.perms || {})[k]); // mines action rights (non-tab)
+const firstTab = () => TABS.find(t => can(t) && modOf(t) === curMod) || TABS.find(t => can(t) && modOf(t) !== '*');
+function drawModBar() {
+  const el = $('#modbar'), ms = MODS.filter(m => hasMod(m[0]));
+  if (ms.length < 2) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.innerHTML = ms.map(m => `<button type="button" class="${m[0] === curMod ? 'on' : ''}" onclick="setMod('${m[0]}')">${m[1]}</button>`).join('');
+}
+function setMod(m) { if (!hasMod(m)) return; curMod = m; applyNav(); const f = firstTab(); if (f) go(f); }
+function applyNav() {
+  document.body.classList.toggle('mines', curMod === 'mines');
+  document.querySelectorAll('aside button[data-tab]').forEach(b => { const m = modOf(b.dataset.tab); b.hidden = !can(b.dataset.tab) || (m !== '*' && m !== curMod); });
+  drawModBar();
+}
 function go(t) {
   if (!can(t)) {
     const f = firstTab();
     if (!f) { $('#main').innerHTML = '<div class="warn">No access has been given to this account. Please ask the Admin.</div>'; return; }
     t = f;
   }
-  if (t !== tab) { tmpLogo = ''; editU = null; editB = null; qc = false; }
+  if (t !== tab) { tmpLogo = ''; editU = null; editB = null; qc = false; mEditT = null; }
   tab = t;
+  if (modOf(t) !== '*' && modOf(t) !== curMod) curMod = modOf(t);
+  applyNav();
   document.querySelectorAll('aside button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ({new: renderNew, invoices: renderInvoices, products: renderProducts, customers: renderCustomers, settings: renderSettings, dash: renderDash, users: renderUsers, inv: renderInventory, rr: renderRR, td: renderTD, acc: renderAccount, wa: renderWa})[t]();
-  $('#brand').textContent = defBiz().name || 'Billing';
+  ({new: renderNew, invoices: renderInvoices, products: renderProducts, customers: renderCustomers, settings: renderSettings, dash: renderDash, users: renderUsers, inv: renderInventory, rr: renderRR, td: renderTD, acc: renderAccount, wa: renderWa, mdash: renderMDash, mtrucks: renderMTrucks, mtrips: renderMTrips})[t]();
+  $('#brand').textContent = curMod === 'mines' ? 'IoT Mines' : (defBiz().name || 'IoT Bill');
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('aside button[data-tab]').forEach(b => b.onclick = () => { custBack = false; go(b.dataset.tab); });
@@ -2047,7 +2123,7 @@ async function rejectRR(id) {
 function setRRBadge(n) {
   const b = document.querySelector('aside button[data-tab="rr"]');
   if (b) b.innerHTML = 'Recharge Request' + (n ? `<span class="nb">${n}</span>` : '');
-  document.title = (n ? '(' + n + ') ' : '') + 'IOT Billing Solution';
+  document.title = (n ? '(' + n + ') ' : '') + 'IoT Solution';
 }
 async function reconcileDevices(list) { // approved request -> make sure the device is in this user's inventory
   if (!cur || cur.role !== 'user' || viewing()) return;
@@ -2221,9 +2297,11 @@ const TD_PAY = [['Pending', 'p-pending'], ['Done', 'p-done'], ['Bill Done', 'p-b
 const tdPayCls = x => (TD_PAY.find(p => p[0] === x) || TD_PAY[0])[1];
 function tdPaySel(v) {
   const cur_ = TD_PAY.some(p => p[0] === v.pay) ? v.pay : 'Pending';
+  if (!cur || cur.role !== 'admin') return `<span class="paysel ${tdPayCls(cur_)}" style="display:inline-flex;align-items:center;cursor:default">${cur_}</span>`; // user sees status only
   return `<select class="paysel ${tdPayCls(cur_)}" aria-label="Payment status" onclick="event.stopPropagation()" onchange="tdPay('${v.owner}', '${v.id}', this)">${TD_PAY.map(p => `<option ${p[0] === cur_ ? 'selected' : ''}>${p[0]}</option>`).join('')}</select>`;
 }
 async function tdPay(o, id, el) {
+  if (!cur || cur.role !== 'admin') { toast('Only Admin can change the payment status.'); return; }
   const r = tdFind(o, id); if (!r) return;
   const old = r.pay || 'Pending', val = el.value;
   r.pay = val; el.className = 'paysel ' + tdPayCls(val);
@@ -2342,6 +2420,7 @@ async function tdCount(j) { // one more packet sent for this IMEI
   let rec = tdVeh.find(v => v.owner === j.owner && v.imei === j.imei);
   if (!rec) { rec = {id: uid(), owner: j.owner, imei: j.imei, vehicle: j.veh || '', pay: 'Pending', lat: j.lat, lon: j.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()}; tdVeh.push(rec); }
   if (j.veh && !rec.vehicle) rec.vehicle = j.veh;
+  if (cur.role !== 'admin') { try { const q = await sb.from('ib_docs').select('data').eq('owner', rec.owner).eq('kind', TDV + rec.id).maybeSingle(); if (q.data && q.data.data && q.data.data.pay) rec.pay = q.data.data.pay; } catch (e) { /* keep */ } } // do not overwrite Admin's payment status
   rec.count = (+rec.count || 0) + 1; rec.last = new Date().toISOString();
   try { await tdSaveRec(rec); } catch (e) { console.error(e); toast('Packet count could not be saved: ' + errMsg(e)); }
   tdDraw();
@@ -2424,9 +2503,143 @@ async function tdSave() {
   finally { const b = $('#td-save'); if (b) b.disabled = tdRun; }
 }
 
+/* ---------- IoT Mines ---------- */
+let mEditT = null;
+const MSTAT = {run: 'Running', idle: 'Idle', maint: 'Maintenance'};
+const truckNo = id => { const t = db.mines.trucks.find(x => x.id === id); return t ? t.no : '(deleted)'; };
+const fmtT = n => (Math.round((+n || 0) * 100) / 100).toLocaleString('en-IN');
+function mineScene() {
+  const peaks = (arr, base, c1, c2) => arr.map(([x, w, h]) => `<path d="M${x - w / 2} ${base} L${x} ${base - h} L${x + w * .12} ${base} Z" fill="${c1}"/><path d="M${x + w * .12} ${base} L${x} ${base - h} L${x + w / 2} ${base} Z" fill="${c2}"/><path d="M${x - w / 2} ${base} L${x} ${base - h} L${x + w / 2} ${base}" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="1"/>`).join('');
+  const road = (id, w) => `<use href="#${id}" fill="none" stroke="#05080c" stroke-opacity=".55" stroke-width="${w + 8}" transform="translate(0 5)"/><use href="#${id}" fill="none" stroke="#c99a40" stroke-opacity=".45" stroke-width="${w + 3}"/><use href="#${id}" fill="none" stroke="#10151c" stroke-width="${w}"/><use href="#${id}" fill="none" stroke="#d3dae4" stroke-opacity=".75" stroke-width="1.5" stroke-dasharray="11 9"/>`;
+  const truck = (rid, dur, delay, sc, pin) => `<g><animateMotion dur="${dur}s" begin="${-delay}s" repeatCount="indefinite" rotate="auto"><mpath href="#${rid}"/></animateMotion><g transform="scale(${sc}) translate(-45,-42)"><use href="#trk"/></g>${pin ? `<g transform="translate(0 ${-62 * sc}) scale(${sc * 1.15})"><g class="pin"><use href="#pinS"/></g></g>` : ''}</g>`;
+  const far = [[60, 300, 170], [250, 360, 215], [470, 320, 150], [700, 380, 205], [930, 340, 165], [1140, 320, 190]];
+  const near = [[120, 300, 105], [380, 340, 125], [620, 300, 95], [1130, 300, 110]];
+  let pit = '';
+  for (let i = 0; i < 6; i++) pit += `<ellipse cx="930" cy="${228 + i * 5}" rx="${150 - i * 22}" ry="${36 - i * 5}" fill="${i % 2 ? '#2c3544' : '#3a4558'}" stroke="rgba(255,255,255,.10)" stroke-width=".8"/>`;
+  pit += `<ellipse cx="930" cy="258" rx="26" ry="5" fill="#0d1117"/><path d="M826 236 Q870 250 912 252" stroke="#9a7a38" stroke-width="3" fill="none" stroke-linecap="round" stroke-opacity=".7"/>`;
+  return `<svg viewBox="0 0 1200 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mine with many trucks on haul roads">
+<defs>
+<linearGradient id="mSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#111924"/><stop offset="1" stop-color="#29323f"/></linearGradient>
+<linearGradient id="mShade" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0b1119" stop-opacity=".85"/><stop offset=".55" stop-color="#0b1119" stop-opacity="0"/></linearGradient>
+<linearGradient id="mGround" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232c39"/><stop offset="1" stop-color="#10151c"/></linearGradient>
+<linearGradient id="bedSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6bd68"/><stop offset="1" stop-color="#b3842f"/></linearGradient>
+<linearGradient id="bedTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6d994"/><stop offset="1" stop-color="#dcaa4a"/></linearGradient>
+<linearGradient id="cab" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a9bb0"/><stop offset="1" stop-color="#4a586c"/></linearGradient>
+<radialGradient id="mGlow"><stop offset="0" stop-color="#ffd98a" stop-opacity=".55"/><stop offset="1" stop-color="#ffd98a" stop-opacity="0"/></radialGradient>
+<path id="r1" d="M-70 268 C 250 238 520 252 760 266 S 1100 304 1290 322"/>
+<path id="r2" d="M-70 330 C 220 302 480 306 700 332 S 1040 378 1290 392"/>
+<path id="r3" d="M-70 396 C 240 376 520 376 760 396 S 1080 420 1290 428"/>
+<g id="trk">
+<ellipse cx="46" cy="47" rx="52" ry="5" fill="#000" opacity=".4"/>
+<path d="M0 15 L9 5 L60 5 L63 15 Z" fill="url(#bedTop)"/>
+<path d="M0 15 H63 V36 H5 Z" fill="url(#bedSide)"/>
+<path d="M5 36 H63 V39 H5 Z" fill="#8a6620"/>
+<path d="M3 15 Q9 -3 21 3 Q29 -4 40 2 Q52 -2 60 15 Z" fill="#0f1319"/>
+<path d="M12 9 Q22 2 30 5" stroke="#46505e" stroke-width="1.5" fill="none"/>
+<path d="M63 19 H77 L86 29 V38 H63 Z" fill="url(#cab)"/>
+<path d="M67 22 H76 L81 29 H67 Z" fill="#aac0d6"/>
+<rect x="0" y="36" width="88" height="6" rx="2" fill="#1a2029"/>
+<circle cx="84" cy="33" r="1.8" fill="#ffe9a8"/>
+<g fill="#0e1218"><circle cx="14" cy="43" r="6.5"/><circle cx="32" cy="43" r="6.5"/><circle cx="74" cy="43" r="6.5"/></g>
+<g fill="#d9a441"><circle cx="14" cy="43" r="2.4"/><circle cx="32" cy="43" r="2.4"/><circle cx="74" cy="43" r="2.4"/></g>
+</g>
+<g id="pinS"><circle cy="-24" r="22" fill="url(#mGlow)"/><path d="M0 0 C-9 -10 -12 -18 -12 -24 A12 12 0 1 1 12 -24 C12 -18 9 -10 0 0 Z" fill="#dcaa4a"/><circle cy="-24" r="4.5" fill="#1a2230"/></g>
+</defs>
+<rect width="1200" height="440" fill="url(#mSky)"/>
+<g fill="none" stroke="rgba(255,255,255,.07)" stroke-width="1.2"><ellipse cx="760" cy="60" rx="420" ry="190"/><ellipse cx="760" cy="60" rx="520" ry="250"/><ellipse cx="180" cy="40" rx="300" ry="120"/><ellipse cx="1080" cy="260" rx="260" ry="150"/></g>
+${peaks(far, 300, '#3b4759', '#262f3c')}
+${pit}
+${peaks(near, 300, '#46536a', '#2d3747')}
+<rect y="262" width="1200" height="178" fill="url(#mGround)" opacity=".92"/>
+<path d="M0 300 Q300 282 600 296 T1200 292 V440 H0 Z" fill="#1b232f" opacity=".85"/>
+${road('r1', 20)}${road('r2', 26)}${road('r3', 34)}
+<path d="M-20 175 C 220 70 520 28 740 78 S 990 170 1050 330" fill="none" stroke="#e0b25a" stroke-opacity=".16" stroke-width="9" stroke-linecap="round"/>
+<path class="route" d="M-20 175 C 220 70 520 28 740 78 S 990 170 1050 330" fill="none" stroke="#e8bd68" stroke-width="3" stroke-dasharray="1 9" stroke-linecap="round"/>
+<circle cx="740" cy="78" r="14" fill="url(#mGlow)"/><circle cx="740" cy="78" r="6" fill="#f6d28a"/>
+<circle cx="1050" cy="330" r="5" fill="#f6d28a"/>
+${truck('r1', 38, 0, .55)}${truck('r1', 38, 10, .55)}${truck('r1', 38, 19, .55, 1)}${truck('r1', 38, 29, .55)}
+${truck('r2', 30, 1, .8)}${truck('r2', 30, 8, .8, 1)}${truck('r2', 30, 15, .8)}${truck('r2', 30, 23, .8)}
+${truck('r3', 24, 2, 1.05)}${truck('r3', 24, 9, 1.05, 1)}${truck('r3', 24, 16, 1.05)}
+<rect width="1200" height="440" fill="url(#mShade)"/>
+</svg>`;
+}
+function renderMDash() {
+  const m = db.mines, t = today(), tt = m.trips.filter(x => x.date === t);
+  const sum = a => a.reduce((n, x) => n + (+x.tons || 0), 0);
+  const run = m.trucks.filter(x => x.status === 'run').length;
+  const recent = m.trips.slice().sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id)).slice(0, 8);
+  $('#main').innerHTML = `<div class="mn">
+    <div class="hero">${mineScene()}<div class="ttl"><h2>IoT Mines</h2><p>Trucks, trips and loads from the pit to the plant, in one place.</p></div></div>
+    <div class="kpis">
+      <div class="kpi"><b>${m.trucks.length}</b><span>Total trucks</span></div>
+      <div class="kpi"><b>${run}</b><span>Running now</span></div>
+      <div class="kpi"><b>${tt.length}</b><span>Trips today</span></div>
+      <div class="kpi"><b>${fmtT(sum(tt))} t</b><span>Loaded today</span></div>
+      <div class="kpi"><b>${fmtT(sum(m.trips))} t</b><span>Total loaded</span></div>
+    </div>
+    <div class="card"><h3>Recent trips</h3><div class="scroll"><table>
+      <thead><tr><th>Date</th><th>Truck</th><th>Material</th><th>From</th><th>To</th><th class="num">Tons</th></tr></thead>
+      <tbody>${recent.length ? recent.map(x => `<tr><td>${esc(x.date)}</td><td>${esc(truckNo(x.truck))}</td><td>${esc(x.material)}</td><td>${esc(x.from)}</td><td>${esc(x.to)}</td><td class="num">${fmtT(x.tons)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No trips yet.</td></tr>'}</tbody></table></div></div></div>`;
+}
+function renderMTrucks() {
+  const ed = canM('mtrucksedit'), t = db.mines.trucks.find(x => x.id === mEditT) || {no: '', driver: '', cap: '', imei: '', status: 'run'};
+  $('#main').innerHTML = `<div class="mn"><h2>Trucks</h2>
+    ${ed ? `<div class="card"><h3>${mEditT ? 'Edit truck' : 'Add truck'}</h3><div class="grid">
+      <div><label for="mt-no">Truck number</label><input id="mt-no" value="${esc(t.no)}" style="text-transform:uppercase" placeholder="e.g. BR01GA1234"></div>
+      <div><label for="mt-dr">Driver</label><input id="mt-dr" value="${esc(t.driver)}"></div>
+      <div><label for="mt-cap">Capacity (tons)</label><input id="mt-cap" inputmode="decimal" value="${esc(t.cap)}"></div>
+      <div><label for="mt-im">Device IMEI</label><input id="mt-im" inputmode="numeric" value="${esc(t.imei)}"></div>
+      <div><label for="mt-st">Status</label><select id="mt-st">${Object.entries(MSTAT).map(([k, l]) => `<option value="${k}" ${t.status === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div></div>
+      <div class="row-actions" style="margin-top:14px"><button class="btn" onclick="saveMTruck()">${mEditT ? 'Update truck' : 'Add truck'}</button>${mEditT ? '<button class="ghost" onclick="mEditT = null; renderMTrucks()">Cancel</button>' : ''}</div></div>` : ''}
+    <div class="card"><div class="scroll"><table>
+      <thead><tr><th>Truck</th><th>Driver</th><th class="num">Capacity (t)</th><th>IMEI</th><th>Status</th><th class="num">Trips</th>${ed ? '<th></th>' : ''}</tr></thead>
+      <tbody>${db.mines.trucks.length ? db.mines.trucks.map(x => `<tr><td><b>${esc(x.no)}</b></td><td>${esc(x.driver)}</td><td class="num">${fmtT(x.cap)}</td><td>${esc(x.imei)}</td><td><span class="tag ${x.status}">${MSTAT[x.status] || ''}</span></td><td class="num">${db.mines.trips.filter(y => y.truck === x.id).length}</td>
+        ${ed ? `<td><div class="row-actions"><button class="ghost" onclick="mEditT = '${x.id}'; renderMTrucks(); window.scrollTo(0, 0)">Edit</button><button class="ghost danger" onclick="delMTruck('${x.id}')">Delete</button></div></td>` : ''}</tr>`).join('') : `<tr><td colspan="${ed ? 7 : 6}" class="empty">No trucks added yet.</td></tr>`}</tbody></table></div></div></div>`;
+}
+function saveMTruck() {
+  const v = id => $('#' + id).value.trim(), no = v('mt-no').toUpperCase();
+  if (!no) { toast('Enter the truck number.'); return; }
+  if (db.mines.trucks.some(x => x.no === no && x.id !== mEditT)) { toast('This truck number already exists.'); return; }
+  const o = {no, driver: v('mt-dr'), cap: +v('mt-cap') || 0, imei: v('mt-im'), status: $('#mt-st').value};
+  if (mEditT) Object.assign(db.mines.trucks.find(x => x.id === mEditT), o); else db.mines.trucks.push(Object.assign({id: uid()}, o));
+  mEditT = null; save(); toast('Truck saved'); renderMTrucks();
+}
+function delMTruck(id) {
+  if (!canM('mtrucksedit') || !confirm('Delete this truck? Its old trips stay in the list.')) return;
+  db.mines.trucks = db.mines.trucks.filter(x => x.id !== id); save(); renderMTrucks();
+}
+function renderMTrips() {
+  const ad = canM('mtripsadd'), list = db.mines.trips.slice().sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id));
+  $('#main').innerHTML = `<div class="mn"><h2>Trips &amp; Loads</h2>
+    ${ad ? `<div class="card"><h3>Add trip</h3><div class="grid">
+      <div><label for="tp-d">Date</label><input id="tp-d" type="date" value="${today()}"></div>
+      <div><label for="tp-tr">Truck</label><select id="tp-tr" onchange="const t = db.mines.trucks.find(x => x.id === this.value); if (t && t.cap) $('#tp-t').value = t.cap"><option value="">Select truck</option>${db.mines.trucks.map(x => `<option value="${x.id}">${esc(x.no)}</option>`).join('')}</select></div>
+      <div><label for="tp-m">Material</label><input id="tp-m" list="tp-ml" value="Coal"><datalist id="tp-ml"><option>Coal</option><option>Iron ore</option><option>Overburden</option><option>Sand</option><option>Stone</option></datalist></div>
+      <div><label for="tp-t">Load (tons)</label><input id="tp-t" inputmode="decimal"></div>
+      <div><label for="tp-f">From</label><input id="tp-f" placeholder="Pit / bench"></div>
+      <div><label for="tp-to">To</label><input id="tp-to" placeholder="Plant / stockyard"></div></div>
+      <div class="row-actions" style="margin-top:14px"><button class="btn" onclick="saveMTrip()">Add trip</button></div></div>` : ''}
+    <div class="card"><div class="scroll"><table>
+      <thead><tr><th>Date</th><th>Truck</th><th>Material</th><th>From</th><th>To</th><th class="num">Tons</th>${ad ? '<th></th>' : ''}</tr></thead>
+      <tbody>${list.length ? list.map(x => `<tr><td>${esc(x.date)}</td><td>${esc(truckNo(x.truck))}</td><td>${esc(x.material)}</td><td>${esc(x.from)}</td><td>${esc(x.to)}</td><td class="num">${fmtT(x.tons)}</td>${ad ? `<td><button class="ghost danger" onclick="delMTrip('${x.id}')">Delete</button></td>` : ''}</tr>`).join('') : `<tr><td colspan="${ad ? 7 : 6}" class="empty">No trips yet.</td></tr>`}</tbody></table></div></div></div>`;
+}
+function saveMTrip() {
+  const v = id => $('#' + id).value.trim();
+  if (!v('tp-tr')) { toast('Select a truck.'); return; }
+  const tons = +v('tp-t'); if (!(tons > 0)) { toast('Enter the load in tons.'); return; }
+  db.mines.trips.push({id: uid(), date: v('tp-d') || today(), truck: v('tp-tr'), material: v('tp-m') || 'Coal', tons, from: v('tp-f'), to: v('tp-to')});
+  save(); toast('Trip added'); renderMTrips();
+}
+function delMTrip(id) {
+  if (!canM('mtripsadd') || !confirm('Delete this trip entry?')) return;
+  db.mines.trips = db.mines.trips.filter(x => x.id !== id); save(); renderMTrips();
+}
+
 /* ---------- create account (Admin only) ---------- */
 const USERS_KEY = 'billing-users-v1'; // old browser-only accounts (used for moving data)
 const PERMS = [['dash', 'Dashboard'], ['new', 'Create invoice'], ['invoices', 'View invoices'], ['addcust', 'Add customer inside Create invoice'], ['payment', 'Record payments'], ['inv', 'Inventory (view device list)'], ['invadd', 'Inventory: add / edit device manually'], ['invbulk', 'Inventory: bulk upload (Excel / CSV)'], ['recharge', 'Recharge Request (send requests to Admin)'], ['td', 'Update Tempering Data (IMEI only)'], ['delete', 'Delete single items only (bill, device)']];
+const MINE_PERMS = [['mdash', 'Mines Dashboard'], ['mtrucks', 'Trucks (view list)'], ['mtrucksedit', 'Trucks: add / edit / delete'], ['mtrips', 'Trips & Loads (view)'], ['mtripsadd', 'Trips & Loads: add / delete entries']];
+const DEF_MINE = ['mdash', 'mtrucks', 'mtrips'];
 const DEF_PERMS = ['dash', 'new', 'invoices', 'inv', 'payment', 'addcust', 'invadd', 'invbulk', 'recharge'];
 let usersCache = [], usersLoaded = false, billCounts = {}, editU = null;
 async function loadUsers() {
@@ -2451,7 +2664,7 @@ async function renderUsers() {
   await tdEnsureAdminCfg();
   if (tab !== 'users') return;
   const users = usersCache;
-  const u = users.find(x => x.id === editU) || {username: '', name: '', phone: '', gstin: '', address: '', prefix: 'INV-', perms: Object.fromEntries(DEF_PERMS.map(k => [k, true]))};
+  const u = users.find(x => x.id === editU) || {username: '', name: '', phone: '', gstin: '', address: '', prefix: 'INV-', perms: Object.fromEntries(DEF_PERMS.concat(DEF_MINE).map(k => [k, true]))};
   const pm = u.perms || {}, tdc = tdNorm(editU ? pm._td : tdAdminCfg);
   const oAdmin = oldData(KEY), oUsers = oldUsers();
   const hasOld = !viewing() && ((oAdmin && (oldBills(oAdmin) || (oAdmin.products || []).length || (oAdmin.customers || []).length)) || oUsers.length);
@@ -2474,8 +2687,13 @@ async function renderUsers() {
         <div><label for="bl">Company logo</label><input id="bl" type="file" accept="image/*" onchange="pickLogo(this.files[0])"></div>
         <div><label>Logo preview</label><img id="lgp" class="logo-thumb" alt="" ${tmpLogo ? `src="${tmpLogo}"` : 'hidden'}></div>
       </div>
-      <div class="sec">Rights (what this user can do)</div>
+      <div class="sec">Dashboard / software for this user</div>
+      <div class="perms">${MODS.map(([k, l]) => `<label><input type="checkbox" id="md-${k}" ${(Array.isArray(pm._mods) ? pm._mods : ['bill']).includes(k) ? 'checked' : ''}>${l}</label>`).join('')}</div>
+      <div style="color:var(--muted);font-size:13px;margin-top:6px">The user sees only the software ticked here, each with its own dashboard.</div>
+      <div class="sec">IoT Bill rights (what this user can do)</div>
       <div class="perms">${PERMS.map(([k, l]) => `<label><input type="checkbox" id="pm-${k}" ${pv(pm, k) ? 'checked' : ''}>${l}</label>`).join('')}</div>
+      <div class="sec">IoT Mines rights (what this user can do)</div>
+      <div class="perms">${MINE_PERMS.map(([k, l]) => `<label><input type="checkbox" id="pm-${k}" ${pm[k] ? 'checked' : ''}>${l}</label>`).join('')}</div>
       <div class="sec">Tempering Data settings (hidden from this user, they only enter IMEI)</div>
       <div class="grid">
         <div><label for="td-ip">Server IP</label><input id="td-ip" value="${esc(tdc.ip)}"></div>
@@ -2492,15 +2710,16 @@ async function renderUsers() {
       </div>
     </div>
     <div class="card"><h3>Accounts</h3><div class="scroll"><table>
-      <thead><tr><th>Logo</th><th>Company</th><th>User ID</th><th>Rights</th><th class="num">Bills</th><th></th></tr></thead>
+      <thead><tr><th>Logo</th><th>Company</th><th>User ID</th><th>Software</th><th>Rights</th><th class="num">Bills</th><th></th></tr></thead>
       <tbody>${users.length ? users.map(x => `<tr>
         <td>${x.logo ? `<img class="logo-thumb" src="${x.logo}" alt="">` : ''}</td>
         <td>${esc(x.name)}<div class="small" style="color:var(--muted)">${esc(x.gstin)}</div></td><td>${esc(x.username)}</td>
-        <td class="rt">${PERMS.filter(([k]) => pv(x.perms || {}, k)).map(p => p[1]).join(', ') || 'None'}</td>
+        <td>${MODS.filter(([k]) => (Array.isArray((x.perms || {})._mods) ? x.perms._mods : ['bill']).includes(k)).map(m => m[1]).join(', ')}</td>
+        <td class="rt">${PERMS.filter(([k]) => pv(x.perms || {}, k) && (Array.isArray((x.perms || {})._mods) ? x.perms._mods : ['bill']).includes('bill')).concat(MINE_PERMS.filter(([k]) => (x.perms || {})[k] && Array.isArray(x.perms._mods) && x.perms._mods.includes('mines'))).map(p => p[1]).join(', ') || 'None'}</td>
         <td class="num">${billCounts[x.id] || 0}</td>
         <td><div class="row-actions"><button class="ghost" onclick="viewAs('${x.id}')">Open data</button><button class="ghost" onclick="editU = '${x.id}'; tmpLogo = usersCache.find(y => y.id === '${x.id}').logo || ''; renderUsers(); window.scrollTo(0, 0)">Edit</button>
         <button class="ghost danger" onclick="delUser('${x.id}')">Delete</button></div></td></tr>`).join('')
-        : '<tr><td colspan="6" class="empty">No accounts yet. Create the first one above.</td></tr>'}</tbody></table></div></div>
+        : '<tr><td colspan="7" class="empty">No accounts yet. Create the first one above.</td></tr>'}</tbody></table></div></div>
     ${hasOld ? `<div class="card"><h3>Old data found in this browser</h3>
       <p style="margin-top:0;color:var(--muted)">Data saved earlier in this browser can be moved to Supabase in one click. After that it opens on every device.</p>
       ${oAdmin && (oldBills(oAdmin) || (oAdmin.products || []).length || (oAdmin.customers || []).length) ? `<div class="row-actions" style="margin-bottom:12px"><button class="btn" onclick="moveAdmin()">Move Admin data (${oldBills(oAdmin)} bills)</button></div>` : ''}
@@ -2527,8 +2746,11 @@ async function saveUser() {
   }
   if ((!editU || pw) && pw.length < 6) { toast('Password must be at least 6 characters.'); return; }
   if (!name) { toast('Enter the company name.'); return; }
-  const perms = {}; PERMS.forEach(([k]) => perms[k] = $('#pm-' + k).checked);
+  const perms = {}; PERMS.concat(MINE_PERMS).forEach(([k]) => perms[k] = $('#pm-' + k).checked);
+  const mods = MODS.map(m => m[0]).filter(k => $('#md-' + k).checked);
+  if (!mods.length) { toast('Tick at least one software (IoT Bill or IoT Mines).'); return; }
   if (!Object.values(perms).some(Boolean)) { toast('Give at least one right.'); return; }
+  perms._mods = mods;
   const data = {name, phone: $('#uph').value.trim(), gstin: $('#ug').value.trim().toUpperCase(), address: $('#ua').value.trim(), logo: tmpLogo, perms: Object.assign({}, perms, {_td: tdReadCfg('td')})};
   const btn = $('#usave'); btn.disabled = true;
   try {
@@ -2547,7 +2769,7 @@ async function delUser(id) {
 }
 
 /* ---- Admin: open a client's data ---- */
-function resetState() { draft = newDraft(); imp = null; editP = editC = editB = editU = null; tmpLogo = ''; invQuery = ''; dashSel = ''; tab = ''; editD = null; devQ = ''; devF = ''; qc = false; }
+function resetState() { mEditT = null; draft = newDraft(); imp = null; editP = editC = editB = editU = null; tmpLogo = ''; invQuery = ''; dashSel = ''; tab = ''; editD = null; devQ = ''; devF = ''; qc = false; }
 function drawViewBar() {
   const el = $('#viewbar');
   if (viewing()) { el.hidden = false; el.innerHTML = `Viewing: <b>${esc(acct.name)}</b> (${esc(acct.username)})<button onclick="exitView()">Back to Admin</button>`; }
@@ -2560,7 +2782,7 @@ async function switchTo(p) {
 }
 async function viewAs(id) {
   const p = usersCache.find(x => x.id === id); if (!p || cur.role !== 'admin') return;
-  try { await switchTo(Object.assign({}, p)); go('dash'); } catch (e) { console.error(e); toast('Could not open this account.'); }
+  try { await switchTo(Object.assign({}, p)); const ml = p.perms && Array.isArray(p.perms._mods) ? p.perms._mods : ['bill']; curMod = ml.includes('bill') ? 'bill' : 'mines'; applyNav(); go(curMod === 'mines' ? 'mdash' : 'dash'); } catch (e) { console.error(e); toast('Could not open this account.'); }
 }
 async function exitView() {
   try { await switchTo(cur); go('users'); } catch (e) { console.error(e); toast('Could not go back. Please refresh.'); }
@@ -2611,6 +2833,7 @@ async function startSession(p) {
   cur = p; acct = p; usersLoaded = false;
   db = load(); resetState(); afterLoad(); drawViewBar();
   $('#login').hidden = true; $('#lp').value = ''; $('#le').textContent = '';
+  curMod = hasMod('bill') ? 'bill' : 'mines';
   applyNav(); go(firstTab() || 'dash');
   rrSeen = null; rrCache = []; setRRBadge(0); pollReq(true);
   return true;
@@ -2632,6 +2855,7 @@ async function login() {
   finally { btn.disabled = false; }
 }
 function endSession() {
+  curMod = 'bill'; document.body.classList.remove('mines'); $('#modbar').hidden = true; mEditT = null;
   clearTimeout(syncTimer); dirty = false; syncing = false;
   tdStop(); tdAdminCfg = null; tdVeh = []; tdSel = ''; tdSent = 0; tdPkt = ''; tdMsg = {t: 'Result will appear here', s: ''};
   cur = null; acct = null; db = defaults(); remote = {core: {}, invoices: []}; sent = {core: '', inv: {}};
