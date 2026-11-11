@@ -303,6 +303,7 @@ aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6
 .tdp #td-start{background:#2196f3}
 .tdp #td-stop{background:#f44336}
 .tdp #td-save{background:#4f46e5;width:100%}
+.tdp #td-chk{background:#0d9488;width:100%}
 .tdp .tbtn:disabled{opacity:.45;pointer-events:none}
 .tdp .tnote{font-size:12px;color:var(--muted);margin-top:-4px}
 .tdp .status{border-radius:20px;background:rgba(255,255,255,.6);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.8);padding:18px 20px;box-shadow:0 8px 32px rgba(31,38,135,.08)}
@@ -2145,12 +2146,13 @@ async function renderTD() {
   <div class="tdp"><div class="td-layout">
     <div class="glass"><div class="stack">
       ${fld('td-imei', 'IMEI', tdJob ? tdJob.imei : '', `inputmode="numeric" maxlength="15" placeholder="15 digit IMEI" data-lock onkeydown="if (event.key === 'Enter') tdStart()"`)}
-      ${adm ? `${fld('tp-veh', 'Vehicle No', '0000', 'readonly')}
-      <div class="two">${fld('tp-lat', 'Lat', c.lat, `inputmode="decimal" data-lock oninput="tdLatPaste(this)"`)}${fld('tp-lon', 'Lon', c.lon, `inputmode="decimal" data-lock`)}</div>
+      ${fld('td-veh', 'Vehicle No', tdJob ? tdJob.veh || '' : '', `placeholder="e.g. UP79AT4176" style="text-transform:uppercase" onkeydown="if (event.key === 'Enter') tdCheckBtn()"`)}
+      ${adm ? `<div class="two">${fld('tp-lat', 'Lat', c.lat, `inputmode="decimal" data-lock oninput="tdLatPaste(this)"`)}${fld('tp-lon', 'Lon', c.lon, `inputmode="decimal" data-lock`)}</div>
       ${fld('tp-ip', 'Server IP', c.ip, 'data-lock')}
       ${fld('tp-port', 'Port', c.port, `inputmode="numeric" data-lock`)}
       ${fld('tp-url', 'Send address (Supabase function)', c.url, 'data-lock')}` : ''}
       <div class="btns"><button class="tbtn" id="td-start" onclick="tdStart()">START LOOP</button><button class="tbtn" id="td-stop" onclick="tdStop()" disabled>STOP</button></div>
+      <button class="tbtn" id="td-chk" onclick="tdCheckBtn()">CHECK VEHICLE STATUS</button>
       ${adm ? `<button class="tbtn" id="td-save" data-lock onclick="tdSave()">SAVE IP &amp; PORT</button><div class="tnote">Saved settings are also applied to all user accounts. Users only enter the IMEI.</div>` : ''}
     </div></div>
     <div>
@@ -2215,6 +2217,7 @@ function tdSelect(o, id) {
   if (tdRun) { toast('Press STOP first.'); return; }
   tdSel = o + '/' + id;
   $('#td-imei').value = v.imei;
+  $('#td-veh').value = v.vehicle || '';
   if (cur.role === 'admin') { if (v.lat && $('#tp-lat')) $('#tp-lat').value = v.lat; if (v.lon && $('#tp-lon')) $('#tp-lon').value = v.lon; }
   tdDraw();
 }
@@ -2285,6 +2288,31 @@ async function tdVltdCheck(o, id, quiet) {
     return false;
   }
 }
+/* "CHECK VEHICLE STATUS" button: IMEI + vehicle number typed on the left, saved in the list, then status is checked */
+async function tdCheckBtn() {
+  if (!cur || !can('td')) return;
+  const imei = ($('#td-imei').value || '').replace(/\s+/g, ''), veh = normVeh($('#td-veh').value);
+  if (!/^\d{15}$/.test(imei)) { tdStatus('Enter the 15 digit IMEI first.', 'err'); return; }
+  if (!veh) { tdStatus('Enter the vehicle number.', 'err'); return; }
+  const btn = $('#td-chk'); if (btn) btn.disabled = true;
+  try {
+    let rec = (tdSel && tdVeh.find(v => v.owner + '/' + v.id === tdSel && v.imei === imei)) || tdVeh.find(v => v.owner === cur.id && v.imei === imei);
+    if (!rec) {
+      const c = tdCfg();
+      rec = {id: uid(), owner: cur.id, imei, vehicle: veh, vltd: '', vltdAt: '', lat: c.lat, lon: c.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()};
+      await tdSaveRec(rec); tdVeh.push(rec);
+    } else if (rec.vehicle !== veh) {
+      rec.vehicle = veh; rec.vltd = ''; rec.vltdAt = '';
+      await tdSaveRec(rec);
+    }
+    tdDraw();
+    tdStatus('Checking status of ' + veh + '…', 'sending');
+    const ok = await tdVltdCheck(rec.owner, rec.id, true);
+    if (ok) tdStatus(veh + ': VLTD ' + rec.vltd + (rec.vltd === 'Active' ? '' : ' (not active)'), rec.vltd === 'Active' ? 'run' : 'err');
+    else tdStatus('Could not check the status of ' + veh + '. Please try again.', 'err');
+  } catch (e) { console.error(e); tdStatus('Could not save: ' + errMsg(e), 'err'); }
+  finally { const b = $('#td-chk'); if (b) b.disabled = false; }
+}
 async function tdVltdAll() {
   const list = tdVeh.filter(v => v.vehicle);
   if (!list.length) { toast('No vehicle numbers added yet.'); return; }
@@ -2294,7 +2322,8 @@ async function tdVltdAll() {
 }
 async function tdCount(j) { // one more packet sent for this IMEI
   let rec = tdVeh.find(v => v.owner === j.owner && v.imei === j.imei);
-  if (!rec) { rec = {id: uid(), owner: j.owner, imei: j.imei, lat: j.lat, lon: j.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()}; tdVeh.push(rec); }
+  if (!rec) { rec = {id: uid(), owner: j.owner, imei: j.imei, vehicle: j.veh || '', lat: j.lat, lon: j.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()}; tdVeh.push(rec); }
+  if (j.veh && !rec.vehicle) rec.vehicle = j.veh;
   rec.count = (+rec.count || 0) + 1; rec.last = new Date().toISOString();
   try { await tdSaveRec(rec); } catch (e) { console.error(e); toast('Packet count could not be saved: ' + errMsg(e)); }
   tdDraw();
@@ -2313,7 +2342,7 @@ async function tdStart() {
   const num = (x, d) => { const n = parseFloat(x); return Number.isFinite(n) ? n : parseFloat(d); };
   const fix = (n, d) => Number.isFinite(n) ? n : parseFloat(d);
   const lat = fix(adm ? num(c.lat, TD_DEF.lat) : num(sel && sel.lat, c.lat), TD_DEF.lat), lon = fix(adm ? num(c.lon, TD_DEF.lon) : num(sel && sel.lon, c.lon), TD_DEF.lon);
-  tdJob = {imei, c, adm, lat, lon, owner: sel ? sel.owner : cur.id};
+  tdJob = {imei, c, adm, lat, lon, owner: sel ? sel.owner : cur.id, veh: normVeh(($('#td-veh') || {}).value)};
   tdRun = true; tdSent = 0; tdPkt = '';
   tdUI(); tdStatus('Starting loop…', 'run');
   tdLoop();
