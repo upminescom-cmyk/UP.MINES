@@ -2157,8 +2157,8 @@ async function renderTD() {
       <div class="status"><h3><i class="dot" id="td-dot"></i>Status:</h3><div id="td-msg"></div>${adm ? '<div id="td-pk"></div>' : ''}</div>
       <div class="db-section glass">
         <div class="db-head"><h2>Vehicle Database</h2><button class="pill add" onclick="tdForm()">+ Add Record</button></div>
-        <div class="tw"><table><thead><tr><th>Serial no</th>${adm ? '<th>User</th>' : ''}<th>Vehicle Number</th><th>IMEI</th><th>count of packets send</th><th>action</th></tr></thead>
-          <tbody id="td-db"><tr><td colspan="${adm ? 6 : 5}" class="empty">Loading…</td></tr></tbody></table></div>
+        <div class="tw"><table><thead><tr><th>Serial no</th>${adm ? '<th>User</th>' : ''}<th>Vehicle Number</th><th>IMEI</th><th>count of packets send</th><th>Last updated</th><th>action</th></tr></thead>
+          <tbody id="td-db"><tr><td colspan="${adm ? 7 : 6}" class="empty">Loading…</td></tr></tbody></table></div>
       </div>
     </div>
   </div></div>`;
@@ -2179,7 +2179,8 @@ function tdUI() {
 /* vehicle database (IMEI + count of packets sent) */
 const tdFind = (o, id) => tdVeh.find(v => v.owner === o && v.id === id);
 const tdRow = r => { const d = Object.assign({}, r); delete d.owner; return {owner: r.owner, kind: TDV + r.id, data: d, updated_at: new Date().toISOString()}; };
-async function tdSaveRec(r) { const w = await sb.from('ib_docs').upsert(tdRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error; }
+const tdFmtDT = s => { if (!s) return ''; const d = new Date(s); if (isNaN(d)) return ''; const z = n => String(n).padStart(2, '0'); return z(d.getDate()) + '-' + z(d.getMonth() + 1) + '-' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()); };
+async function tdSaveRec(r) { r.updated = new Date().toISOString(); const w = await sb.from('ib_docs').upsert(tdRow(r), {onConflict: 'owner,kind'}); if (w.error) throw w.error; }
 async function tdLoad() {
   if (!cur) return;
   try {
@@ -2189,21 +2190,22 @@ async function tdLoad() {
     tdVeh = r.data.map(x => Object.assign({}, x.data, {owner: x.owner})).sort((a, b) => String(a.created || '').localeCompare(String(b.created || '')));
   } catch (e) {
     console.error(e);
-    const tb = $('#td-db'); if (tb) tb.innerHTML = `<tr><td colspan="${cur.role === 'admin' ? 6 : 5}" class="empty">Could not load the list. ${esc(errMsg(e))}</td></tr>`;
+    const tb = $('#td-db'); if (tb) tb.innerHTML = `<tr><td colspan="${cur.role === 'admin' ? 7 : 6}" class="empty">Could not load the list. ${esc(errMsg(e))}</td></tr>`;
     return;
   }
   tdDraw();
 }
 function tdDraw() {
   const tb = $('#td-db'); if (!tb || tab !== 'td') return;
-  const adm = cur.role === 'admin', del = can('delete');
+  const adm = cur.role === 'admin', del = adm; // delete: only super admin
   tb.innerHTML = tdVeh.length ? tdVeh.map((v, i) => `<tr class="${tdSel === v.owner + '/' + v.id ? 'sel' : ''}" onclick="tdSelect('${v.owner}', '${v.id}')">
     <td>${i + 1}</td>${adm ? `<td>${esc(v.by || '')}<div class="small" style="color:var(--muted)">${esc(v.user || '')}</div></td>` : ''}
     <td><b>0000</b></td><td><code>${esc(v.imei)}</code></td><td><span class="cnt">${+v.count || 0}</span></td>
+    <td>${esc(tdFmtDT(v.updated || v.last || v.created))}</td>
     <td><div class="pills"><button class="pill sel" onclick="event.stopPropagation(); tdSelect('${v.owner}', '${v.id}')">Select</button>
       <button class="pill edt" onclick="event.stopPropagation(); tdForm('${v.owner}', '${v.id}')">Edit</button>
       ${del ? `<button class="pill del" onclick="event.stopPropagation(); tdDelete('${v.owner}', '${v.id}')">Delete</button>` : ''}</div></td></tr>`).join('')
-    : `<tr><td colspan="${adm ? 6 : 5}" class="empty">No vehicles yet. Add a record or press START LOOP.</td></tr>`;
+    : `<tr><td colspan="${adm ? 7 : 6}" class="empty">No vehicles yet. Add a record or press START LOOP.</td></tr>`;
 }
 function tdSelect(o, id) {
   const v = tdFind(o, id); if (!v) return;
@@ -2245,7 +2247,7 @@ async function tdFormSave(o, id) {
   } catch (e) { console.error(e); toast('Could not save: ' + errMsg(e)); }
 }
 async function tdDelete(o, id) {
-  if (!can('delete')) return;
+  if (!cur || cur.role !== 'admin') return; // only super admin can delete
   const v = tdFind(o, id); if (!v || !confirm('Delete vehicle record with IMEI ' + v.imei + '?')) return;
   try {
     const r = await sb.from('ib_docs').delete().eq('owner', v.owner).eq('kind', TDV + id).select();
