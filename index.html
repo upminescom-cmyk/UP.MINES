@@ -284,6 +284,44 @@ aside button .nb{display:inline-block;min-width:20px;margin-left:8px;padding:0 6
 .rr-note.bad{color:var(--danger)}
 .rr-act{display:grid;gap:6px;min-width:190px}
 
+/* ---- Tempering Dashboard (graphs) ---- */
+.tdd .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px}
+.tdd .kpi{position:relative;overflow:hidden;background:rgba(255,255,255,.75);border:1px solid rgba(255,255,255,.9);border-radius:20px;padding:18px 20px;box-shadow:0 8px 28px rgba(31,38,135,.10)}
+.tdd .kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--c,#4f46e5)}
+.tdd .kpi .kl{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.tdd .kpi .kv{font-size:36px;font-weight:800;line-height:1.15;margin-top:6px;color:var(--c,#4f46e5);font-variant-numeric:tabular-nums}
+.tdd .kpi .ks{font-size:12.5px;color:var(--muted);margin-top:2px}
+.tdd .charts{display:grid;gap:18px}
+@media (min-width:1100px){.tdd .charts.c2{grid-template-columns:1fr 1fr}}
+.tdd .glass{margin-bottom:0}
+.tdd .ct{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.tdd .ct h3{margin:0;font-size:15px;font-weight:700}
+.tdd .lg{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.tdd .lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.tdd svg.ch{width:100%;height:auto;display:block}
+.tdd svg.ch text{font-family:"Segoe UI",system-ui,sans-serif}
+.tdd .dn{display:flex;align-items:center;gap:22px;flex-wrap:wrap;justify-content:center}
+.tdd .dn svg{width:170px;height:170px;flex-shrink:0}
+.tdd .dl{display:grid;gap:8px;font-size:13.5px}
+.tdd .dl div{display:flex;align-items:center;gap:8px}
+.tdd .dl i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.tdd .dl b{margin-left:auto;padding-left:14px;font-variant-numeric:tabular-nums}
+.tdd .hb{display:grid;gap:9px}
+.tdd .hb .r{display:grid;grid-template-columns:110px 1fr 46px;gap:10px;align-items:center;font-size:13px}
+.tdd .hb .r span.n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.tdd .hb .tr{height:14px;background:rgba(148,163,184,.22);border-radius:99px;overflow:hidden}
+.tdd .hb .tr i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6366f1,#06b6d4)}
+.tdd .hb .r b{text-align:right;font-variant-numeric:tabular-nums}
+.tdseg{display:inline-flex;background:rgba(255,255,255,.7);border:1px solid var(--tl);border-radius:999px;padding:3px}
+.tdseg button{border:0;background:none;padding:6px 14px;border-radius:999px;font:600 13px "Segoe UI",system-ui,sans-serif;cursor:pointer;color:var(--muted)}
+.tdseg button.on{background:#4f46e5;color:#fff}
+.tdd .nodata{color:var(--muted);text-align:center;padding:30px 10px;font-size:14px}
+.tdp .fbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:14px}
+.tdp .fbar>div{min-width:170px;flex:1}
+.tdp .fbar label{color:var(--muted);font-size:12px}
+.tdp .fbar select,.tdp .fbar input{height:42px;border-radius:12px;background:rgba(255,255,255,.8)}
+.tdp .fcnt{font-size:13px;font-weight:600;color:var(--acc);margin:-4px 0 12px}
+
 /* ---- Update Tempering Data (TCP client look) ---- */
 .tdp{--acc:#4f46e5;--tl:rgba(100,116,139,.35);background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 55%,#fdf2f8 100%);border-radius:18px;padding:16px;margin-top:12px}
 .tdp .td-layout{display:grid;gap:20px}
@@ -421,6 +459,7 @@ body.mines #toast{background:#d9a441;color:#14110a}
     <button data-tab="inv">Inventory</button>
     <button data-tab="rr">Recharge Request</button>
     <button data-tab="td">Update Tempering Data</button>
+    <button data-tab="tdash">Tempering Dashboard</button>
     <button data-tab="products">Products</button>
     <button data-tab="customers">Customers</button>
     <button data-tab="acc">Account details</button>
@@ -644,14 +683,14 @@ const lineAmt = it => (+it.qty || 0) * (+it.price || 0);
 
 /* ---------- navigation ---------- */
 let tab = 'dash';
-const TABS = ['dash', 'new', 'invoices', 'inv', 'rr', 'td', 'products', 'customers', 'acc', 'wa', 'settings', 'mdash', 'mtrucks', 'mtrips', 'users'];
+const TABS = ['dash', 'new', 'invoices', 'inv', 'rr', 'td', 'tdash', 'products', 'customers', 'acc', 'wa', 'settings', 'mdash', 'mtrucks', 'mtrips', 'users'];
 const MINE_TABS = ['mdash', 'mtrucks', 'mtrips'];
 const MODS = [['bill', 'IoT Bill'], ['mines', 'IoT Mines']];
 let curMod = 'bill';
 const modOf = t => MINE_TABS.includes(t) ? 'mines' : (t === 'users' ? '*' : 'bill');
 const hasMod = m => { if (!cur) return false; if (cur.role === 'admin') return true; const l = cur.perms && cur.perms._mods; return (Array.isArray(l) ? l : ['bill']).includes(m); };
 const ADMIN_ONLY = ['products', 'customers', 'acc', 'wa', 'settings', 'users']; // normal users see only: Dashboard, Create invoice, Invoice, Inventory, Recharge Request
-const PMAP = {acc: 'settings', wa: 'settings', rr: 'recharge'};
+const PMAP = {acc: 'settings', wa: 'settings', rr: 'recharge', tdash: 'td'};
 const NEWP = {addcust: 'customers', invadd: 'inv', invbulk: 'inv', recharge: 'new'}; // new rights follow the old right until Admin saves the account
 const pv = (m, k) => m[k] !== undefined || !NEWP[k] ? m[k] : m[NEWP[k]];
 const can = p => {
@@ -686,7 +725,7 @@ function go(t) {
   if (modOf(t) !== '*' && modOf(t) !== curMod) curMod = modOf(t);
   applyNav();
   document.querySelectorAll('aside button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ({new: renderNew, invoices: renderInvoices, products: renderProducts, customers: renderCustomers, settings: renderSettings, dash: renderDash, users: renderUsers, inv: renderInventory, rr: renderRR, td: renderTD, acc: renderAccount, wa: renderWa, mdash: renderMDash, mtrucks: renderMTrucks, mtrips: renderMTrips})[t]();
+  ({new: renderNew, invoices: renderInvoices, products: renderProducts, customers: renderCustomers, settings: renderSettings, dash: renderDash, users: renderUsers, inv: renderInventory, rr: renderRR, td: renderTD, tdash: renderTDash, acc: renderAccount, wa: renderWa, mdash: renderMDash, mtrucks: renderMTrucks, mtrips: renderMTrips})[t]();
   $('#brand').textContent = curMod === 'mines' ? 'IoT Mines' : (defBiz().name || 'IoT Bill');
   window.scrollTo(0, 0);
 }
@@ -2239,6 +2278,8 @@ async function renderTD() {
       <div class="status"><h3><i class="dot" id="td-dot"></i>Status:</h3><div id="td-msg"></div>${adm ? '<div id="td-pk"></div>' : ''}</div>
       <div class="db-section glass">
         <div class="db-head"><h2>Vehicle Database</h2><div class="pills"><button class="pill edt" onclick="tdVltdAll()">Check all status</button><button class="pill add" onclick="tdForm()">+ Add Record</button></div></div>
+        <div class="fbar"><div><label for="td-dsel">Last updated — date wise</label><select id="td-dsel" onchange="tdSetDate(this.value)"></select></div><div><label for="td-dinp">Or pick a date</label><input id="td-dinp" type="date" onchange="tdSetDate(this.value)"></div><div style="flex:0 0 auto;min-width:0"><button class="pill sel" style="height:42px" onclick="tdSetDate('')">Clear filter</button></div></div>
+        <div class="fcnt" id="td-dcnt"></div>
         <div class="tw"><table><thead><tr><th>Serial no</th>${adm ? '<th>User</th>' : ''}<th>Vehicle Number</th><th>IMEI</th><th>count of packets send</th><th>Last updated</th><th>VLTD status</th><th>Payment status</th><th>action</th></tr></thead>
           <tbody id="td-db"><tr><td colspan="${adm ? 9 : 8}" class="empty">Loading…</td></tr></tbody></table></div>
       </div>
@@ -2296,7 +2337,7 @@ async function tdLoad() {
 function tdDraw() {
   const tb = $('#td-db'); if (!tb || tab !== 'td') return;
   const adm = cur.role === 'admin', del = adm; // delete: only super admin
-  tb.innerHTML = tdVeh.length ? tdVeh.map((v, i) => `<tr class="${tdSel === v.owner + '/' + v.id ? 'sel' : ''}" onclick="tdSelect('${v.owner}', '${v.id}')">
+  const list = tdFiltered(); tdFBar(); tb.innerHTML = list.length ? list.map((v, i) => `<tr class="${tdSel === v.owner + '/' + v.id ? 'sel' : ''}" onclick="tdSelect('${v.owner}', '${v.id}')">
     <td>${i + 1}</td>${adm ? `<td>${esc(v.by || '')}<div class="small" style="color:var(--muted)">${esc(v.user || '')}</div></td>` : ''}
     <td><b>${esc(v.vehicle || '—')}</b></td><td><code>${esc(v.imei)}</code></td><td><span class="cnt">${+v.count || 0}</span></td>
     <td>${esc(tdFmtDT(v.updated || v.last || v.created))}</td>
@@ -2305,7 +2346,7 @@ function tdDraw() {
     <td>${tdPaySel(v)}</td>
     <td><div class="pills"><button class="pill sel" onclick="event.stopPropagation(); tdSelect('${v.owner}', '${v.id}')">Select</button>
       ${del ? `<button class="pill del" onclick="event.stopPropagation(); tdDelete('${v.owner}', '${v.id}')">Delete</button>` : ''}</div></td></tr>`).join('')
-    : `<tr><td colspan="${adm ? 9 : 8}" class="empty">No vehicles yet. Add a record or press START LOOP.</td></tr>`;
+    : `<tr><td colspan="${adm ? 9 : 8}" class="empty">${tdDate ? 'No vehicle was updated on this date.' : 'No vehicles yet. Add a record or press START LOOP.'}</td></tr>`;
 }
 const TD_PAY = [['Pending', 'p-pending'], ['Done', 'p-done'], ['Bill Done', 'p-bill']];
 const tdPayCls = x => (TD_PAY.find(p => p[0] === x) || TD_PAY[0])[1];
@@ -2485,6 +2526,115 @@ async function tdReport() {
       <div class="tw"><table><thead><tr><th>#</th><th>Vehicle Number</th><th>IMEI</th><th>Date</th><th>Time</th></tr></thead><tbody>${rows.slice(0, 500).map((x, i) => { const dt = tdAmPm(x.t).split('|'); return `<tr style="cursor:default"><td>${i + 1}</td><td><b>${esc(x.veh || '—')}</b></td><td><code>${esc(x.imei)}</code></td><td>${dt[0]}</td><td>${dt[1]}${x.old ? ' <span class="ex">last update</span>' : ''}</td></tr>`; }).join('')}</tbody></table></div>
       ${rows.length > 500 ? '<div class="small" style="color:var(--muted);margin-top:8px">Showing the latest 500 of ' + rows.length + ' updates.</div>' : ''}`;
   } catch (e) { console.error(e); out.innerHTML = '<div class="warn">Could not load the report. ' + esc(errMsg(e)) + '</div>'; }
+}
+
+/* ---------- Last updated date filter (Vehicle Database) ---------- */
+let tdDate = '';
+const tdZ = n => String(n).padStart(2, '0');
+const tdKey = d => d.getFullYear() + '-' + tdZ(d.getMonth() + 1) + '-' + tdZ(d.getDate());
+const tdDateOf = v => { const d = new Date(v.updated || v.last || v.created || ''); return isNaN(d) ? '' : tdKey(d); };
+const tdFiltered = () => tdDate ? tdVeh.filter(v => tdDateOf(v) === tdDate) : tdVeh;
+function tdSetDate(v) { tdDate = v || ''; tdDraw(); }
+function tdFBar() {
+  const sel = $('#td-dsel'), cnt = $('#td-dcnt'); if (!sel) return;
+  const m = {}; tdVeh.forEach(v => { const k = tdDateOf(v); if (k) m[k] = (m[k] || 0) + 1; });
+  const keys = Object.keys(m).sort().reverse(), sig = keys.map(k => k + ':' + m[k]).join('|') + '#' + tdDate;
+  if (sel.dataset.sig !== sig) {
+    sel.dataset.sig = sig;
+    sel.innerHTML = '<option value="">All dates (' + tdVeh.length + ' vehicles)</option>' + keys.map(k => `<option value="${k}">${fmtD(k)} — ${m[k]} vehicle${m[k] > 1 ? 's' : ''}</option>`).join('');
+    sel.value = keys.includes(tdDate) ? tdDate : '';
+  }
+  const inp = $('#td-dinp'); if (inp && inp.value !== tdDate) inp.value = tdDate;
+  if (cnt) cnt.textContent = tdDate ? (m[tdDate] || 0) + ' vehicle(s) updated on ' + fmtD(tdDate) : 'Total ' + tdVeh.length + ' vehicle(s) — pick a date to filter by Last updated';
+}
+
+/* ---------- Tempering Dashboard (graphs) ---------- */
+let tddDays = 14, tddBusy = false;
+const TDD_COL = ['#4f46e5', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+function tddBars(items, o) { // o: {line: [..] second series}
+  const W = 640, H = 230, L = 34, R = 10, T = 22, B = 34, n = items.length;
+  const mx = Math.max(1, ...items.map(i => i.v), ...(o.line || [0])), step = Math.pow(10, Math.floor(Math.log10(mx))), top = Math.ceil(mx / step) * step;
+  const bw = (W - L - R) / n, y = v => T + (H - T - B) * (1 - v / top);
+  let s = `<svg class="ch" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label || 'chart')}">`;
+  for (let k = 0; k <= 4; k++) { const v = top * k / 4, yy = y(v); s += `<line x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}" stroke="rgba(148,163,184,.35)"/><text x="${L - 6}" y="${yy + 4}" text-anchor="end" font-size="10" fill="#64748b">${Math.round(v)}</text>`; }
+  items.forEach((it, i) => {
+    const x = L + i * bw + bw * .18, w = bw * .64, yy = y(it.v), h = H - B - yy;
+    s += `<rect x="${x}" y="${yy}" width="${w}" height="${Math.max(h, 0)}" rx="5" fill="${o.color || '#4f46e5'}" opacity="${it.hi ? 1 : .85}"><title>${esc(it.t || it.l)}: ${it.v}</title></rect>`;
+    if (it.v && n <= 16) s += `<text x="${x + w / 2}" y="${yy - 5}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#334155">${it.v}</text>`;
+    if (n <= 16 || i % Math.ceil(n / 14) === 0) s += `<text x="${x + w / 2}" y="${H - 14}" text-anchor="middle" font-size="10" fill="#64748b">${esc(it.l)}</text>`;
+  });
+  if (o.line) {
+    const pts = o.line.map((v, i) => [L + i * bw + bw / 2, y(v)]);
+    s += `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-linejoin="round"/>` + pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="#fff" stroke="#f59e0b" stroke-width="2"><title>${esc(items[i].l)}: ${o.line[i]} vehicle(s)</title></circle>`).join('');
+  }
+  return s + '</svg>';
+}
+function tddDonut(items) {
+  const tot = items.reduce((a, i) => a + i.v, 0); if (!tot) return '<div class="nodata">No vehicles yet</div>';
+  const r = 60, c = 2 * Math.PI * r; let off = 0, arcs = '';
+  items.forEach(i => { if (!i.v) return; const len = c * i.v / tot; arcs += `<circle cx="80" cy="80" r="${r}" fill="none" stroke="${i.c}" stroke-width="24" stroke-dasharray="${len} ${c - len}" stroke-dashoffset="${-off}" transform="rotate(-90 80 80)"><title>${esc(i.l)}: ${i.v}</title></circle>`; off += len; });
+  return `<div class="dn"><svg viewBox="0 0 160 160" role="img"><circle cx="80" cy="80" r="${r}" fill="none" stroke="rgba(148,163,184,.2)" stroke-width="24"/>${arcs}<text x="80" y="82" text-anchor="middle" font-size="28" font-weight="800" fill="#16202e">${tot}</text><text x="80" y="100" text-anchor="middle" font-size="11" fill="#64748b">vehicles</text></svg>
+    <div class="dl">${items.map(i => `<div><i style="background:${i.c}"></i>${esc(i.l)}<b>${i.v}</b></div>`).join('')}</div></div>`;
+}
+function tddSetDays(n) { tddDays = n; renderTDash(); }
+async function renderTDash() {
+  if (!cur) return;
+  const seg = [7, 14, 30].map(d => `<button class="${d === tddDays ? 'on' : ''}" onclick="tddSetDays(${d})">${d} days</button>`).join('');
+  $('#main').innerHTML = `<div class="bar"><h2 style="margin:0">Tempering Dashboard</h2><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="tdseg">${seg}</div><button class="ghost" onclick="renderTDash()">Refresh</button></div></div>
+    <div class="tdp tdd"><div id="tdd-body"><div class="nodata">Loading dashboard…</div></div></div>`;
+  if (tddBusy) return; tddBusy = true;
+  try {
+    await tdLoad(); if (tab !== 'tdash') return;
+    const now = new Date(), from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (tddDays - 1));
+    let all = [];
+    for (let p = 0; p < 20; p++) {
+      let q = sb.from('ib_docs').select('owner,data').like('kind', TDL + '%').gte('updated_at', from.toISOString()).order('updated_at', {ascending: false}).range(p * 1000, p * 1000 + 999);
+      if (cur.role !== 'admin') q = q.eq('owner', cur.id);
+      const r = await q; if (r.error) throw r.error; all = all.concat(r.data); if (r.data.length < 1000) break;
+    }
+    if (tab !== 'tdash') return;
+    const rows = [];
+    all.forEach(x => { const d = x.data || {}; const veh = d.vehicle || ((tdVeh.find(v => v.imei === d.imei) || {}).vehicle) || ''; (d.t || []).forEach(s => { const t = new Date(s); if (!isNaN(t) && t >= from) rows.push({t, imei: d.imei, veh}); }); });
+    const have = new Set(rows.map(x => x.imei)); // older data: only last packet time was saved
+    tdVeh.forEach(v => { if (have.has(v.imei) || !v.last) return; const t = new Date(v.last); if (!isNaN(t) && t >= from) rows.push({t, imei: v.imei, veh: v.vehicle || ''}); });
+    const tk = tdKey(now), days = [];
+    for (let i = 0; i < tddDays; i++) { const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + i); days.push({k: tdKey(d), l: tdZ(d.getDate()) + '/' + tdZ(d.getMonth() + 1), n: 0, s: new Set()}); }
+    const dm = {}; days.forEach(d => { dm[d.k] = d; });
+    const hrs = Array.from({length: 24}, (_, h) => ({l: tdZ(h), v: 0, t: tdZ(h) + ':00'})), per = {};
+    rows.forEach(x => {
+      const k = tdKey(x.t), d = dm[k]; if (d) { d.n++; d.s.add(x.imei); }
+      if (k === tk) hrs[x.t.getHours()].v++;
+      per[x.imei] = per[x.imei] || {veh: x.veh, n: 0}; per[x.imei].n++;
+    });
+    const today = dm[tk] || {n: 0, s: new Set()};
+    const totalPk = tdVeh.reduce((a, v) => a + (+v.count || 0), 0) || rows.length;
+    const act = tdVeh.filter(v => /^active$/i.test(v.vltd || '')).length, ina = tdVeh.filter(v => v.vltd && !/^active$/i.test(v.vltd)).length;
+    const pay = {Pending: 0, Done: 0, 'Bill Done': 0}; tdVeh.forEach(v => { pay[TD_PAY.some(p => p[0] === v.pay) ? v.pay : 'Pending']++; });
+    const top = Object.values(per).sort((a, b) => b.n - a.n).slice(0, 8), tmx = top.length ? top[0].n : 1;
+    const dItems = days.map(d => ({l: d.l, v: d.n, t: fmtD(d.k), hi: d.k === tk}));
+    $('#tdd-body').innerHTML = `
+      <div class="kpis">
+        <div class="kpi" style="--c:#4f46e5"><div class="kl">Today Update</div><div class="kv">${today.n}</div><div class="ks">packets sent today</div></div>
+        <div class="kpi" style="--c:#0d9488"><div class="kl">Total Update</div><div class="kv">${totalPk}</div><div class="ks">all packets sent till now</div></div>
+        <div class="kpi" style="--c:#f59e0b"><div class="kl">Vehicles Updated Today</div><div class="kv">${today.s.size}</div><div class="ks">unique vehicles today</div></div>
+        <div class="kpi" style="--c:#8b5cf6"><div class="kl">Total Vehicles</div><div class="kv">${tdVeh.length}</div><div class="ks">in Vehicle Database</div></div>
+      </div>
+      <div class="charts">
+        <div class="glass"><div class="ct"><h3>Daily updates — last ${tddDays} days</h3><div class="lg"><span><i style="background:#4f46e5"></i>Updates (packets)</span><span><i style="background:#f59e0b"></i>Vehicles</span></div></div>
+          ${rows.length ? tddBars(dItems, {line: days.map(d => d.s.size), label: 'Daily updates'}) : '<div class="nodata">No update data in this period.</div>'}</div>
+        <div class="charts c2">
+          <div class="glass"><div class="ct"><h3>Today by hour</h3></div>${today.n ? tddBars(hrs, {color: '#06b6d4', label: 'Hourly updates today'}) : '<div class="nodata">No update today yet.</div>'}</div>
+          <div class="glass"><div class="ct"><h3>Top vehicles (last ${tddDays} days)</h3></div>${top.length ? `<div class="hb">${top.map(t => `<div class="r"><span class="n">${esc(t.veh || '—')}</span><div class="tr"><i style="width:${Math.max(3, t.n / tmx * 100)}%"></i></div><b>${t.n}</b></div>`).join('')}</div>` : '<div class="nodata">No data.</div>'}</div>
+        </div>
+        <div class="charts c2">
+          <div class="glass"><div class="ct"><h3>VLTD status</h3></div>${tddDonut([{l: 'Active', v: act, c: '#10b981'}, {l: 'Inactive', v: ina, c: '#ef4444'}, {l: 'Not checked', v: tdVeh.length - act - ina, c: '#94a3b8'}])}</div>
+          <div class="glass"><div class="ct"><h3>Payment status</h3></div>${tddDonut([{l: 'Pending', v: pay.Pending, c: '#f59e0b'}, {l: 'Done', v: pay.Done, c: '#10b981'}, {l: 'Bill Done', v: pay['Bill Done'], c: '#3b82f6'}])}</div>
+        </div>
+        <div class="glass"><div class="ct"><h3>Date-wise report</h3></div>
+          <div class="tw"><table><thead><tr><th>Date</th><th>Vehicles updated</th><th>Total updates</th></tr></thead><tbody>${days.slice().reverse().map(d => `<tr style="cursor:default"><td>${fmtD(d.k)}${d.k === tk ? ' <span class="ex">today</span>' : ''}</td><td><span class="cnt">${d.s.size}</span></td><td><span class="cnt">${d.n}</span></td></tr>`).join('')}</tbody></table></div></div>
+      </div>`;
+  } catch (e) { console.error(e); const b = $('#tdd-body'); if (b) b.innerHTML = '<div class="warn">Could not load the dashboard. ' + esc(errMsg(e)) + '</div>'; }
+  finally { tddBusy = false; }
 }
 
 /* send loop */
