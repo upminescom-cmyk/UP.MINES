@@ -2265,7 +2265,7 @@ async function renderTD() {
   <div class="tdp"><div class="td-layout">
     <div class="glass"><div class="stack">
       ${fld('td-imei', 'IMEI', tdJob ? tdJob.imei : '', `inputmode="numeric" maxlength="15" placeholder="15 digit IMEI" data-lock onkeydown="if (event.key === 'Enter') tdStart()"`)}
-      ${fld('td-veh', 'Vehicle No', tdJob ? tdJob.veh || '' : '', `placeholder="e.g. UP79AT4176" style="text-transform:uppercase" onkeydown="if (event.key === 'Enter') tdCheckBtn()"`)}
+      ${fld('td-veh', 'Vehicle No', tdJob ? tdJob.veh || '' : '', `placeholder="e.g. UP79AT4176" style="text-transform:uppercase" oninput="tdVehFill(this.value)" onkeydown="if (event.key === 'Enter') tdCheckBtn()"`)}
       ${adm ? `<div class="two">${fld('tp-lat', 'Lat', c.lat, `inputmode="decimal" data-lock oninput="tdLatPaste(this)"`)}${fld('tp-lon', 'Lon', c.lon, `inputmode="decimal" data-lock`)}</div>
       ${fld('tp-ip', 'Server IP', c.ip, 'data-lock')}
       ${fld('tp-port', 'Port', c.port, `inputmode="numeric" data-lock`)}
@@ -2288,6 +2288,18 @@ async function renderTD() {
   tdStatus(tdMsg.t, tdMsg.s);
   const pk = $('#td-pk'); if (pk) pk.textContent = tdPkt;
   tdUI(); tdLoad();
+}
+/* vehicle number typed -> IMEI of the same vehicle (from the Vehicle Database / Report) is filled in automatically */
+let tdAutoImei = '';
+function tdVehFill(v) {
+  if (tdRun) return;
+  const im = $('#td-imei'); if (!im) return;
+  const n = normVeh(v);
+  const hit = n ? tdVeh.filter(x => x.imei && normVeh(x.vehicle) === n)
+    .sort((a, b) => String(b.updated || b.last || b.created || '').localeCompare(String(a.updated || a.last || a.created || '')))[0] : null;
+  if (hit) {
+    if (!im.value.trim() || im.value === tdAutoImei) { im.value = hit.imei; tdAutoImei = hit.imei; tdSel = hit.owner + '/' + hit.id; tdDraw(); }
+  } else if (tdAutoImei && im.value === tdAutoImei) { im.value = ''; tdAutoImei = ''; tdSel = ''; tdDraw(); }
 }
 function tdStatus(t, s) {
   tdMsg = {t, s: s || ''};
