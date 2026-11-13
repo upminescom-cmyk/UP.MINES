@@ -2242,7 +2242,7 @@ async function renderTD() {
         <div class="tw"><table><thead><tr><th>Serial no</th>${adm ? '<th>User</th>' : ''}<th>Vehicle Number</th><th>IMEI</th><th>count of packets send</th><th>Last updated</th><th>VLTD status</th><th>Payment status</th><th>action</th></tr></thead>
           <tbody id="td-db"><tr><td colspan="${adm ? 9 : 8}" class="empty">Loading…</td></tr></tbody></table></div>
       </div>
-      <div class="db-section glass">
+      ${can('report') ? `<div class="db-section glass">
         <div class="db-head"><h2>Report</h2></div>
         <div class="two" style="align-items:end">
           <div><label for="tr-rng" style="color:var(--muted);font-size:12px">Report type</label>
@@ -2256,7 +2256,7 @@ async function renderTD() {
           <div><label for="tr-to" style="color:var(--muted);font-size:12px">To date</label><input id="tr-to" type="date" value="${today()}"></div>
         </div>
         <div id="tr-out" style="margin-top:14px"><div class="small" style="color:var(--muted)">Choose a report type and press Show Report.</div></div>
-      </div>
+      </div>` : ''}
     </div>
   </div></div>`;
   tdStatus(tdMsg.t, tdMsg.s);
@@ -2457,6 +2457,7 @@ async function tdLog(rec) {
 }
 const tdAmPm = d => { const z = n => String(n).padStart(2, '0'), h = d.getHours(); return z(d.getDate()) + '-' + z(d.getMonth() + 1) + '-' + d.getFullYear() + '|' + z(h % 12 || 12) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()) + ' ' + (h < 12 ? 'AM' : 'PM'); };
 async function tdReport() {
+  if (!can('report')) return;
   const out = $('#tr-out'), rng = $('#tr-rng').value; let from, to;
   if (rng === 'custom') {
     const a = $('#tr-from').value, b = $('#tr-to').value;
@@ -2471,6 +2472,9 @@ async function tdReport() {
     const r = await q; if (r.error) throw r.error;
     const rows = [];
     r.data.forEach(x => { const d = x.data || {}; const veh = d.vehicle || ((tdVeh.find(v => v.imei === d.imei) || {}).vehicle) || ''; (d.t || []).forEach(s => { const t = new Date(s); if (t >= from && t <= to) rows.push({t, imei: d.imei, veh}); }); });
+    // older data: only the last packet time was saved for these vehicles, so show that one entry
+    const have = new Set(rows.map(x => x.imei));
+    tdVeh.forEach(v => { if (have.has(v.imei) || !v.last) return; const t = new Date(v.last); if (!isNaN(t) && t >= from && t <= to) rows.push({t, imei: v.imei, veh: v.vehicle || '', old: true}); });
     rows.sort((a, b) => b.t - a.t);
     const per = {}; rows.forEach(x => { per[x.imei] = per[x.imei] || {imei: x.imei, veh: x.veh, n: 0}; per[x.imei].n++; });
     const label = rng === 'custom' ? fmtD($('#tr-from').value) + ' to ' + fmtD($('#tr-to').value) : 'Last ' + rng + ' hour' + (rng === '1' ? '' : 's');
@@ -2478,7 +2482,7 @@ async function tdReport() {
     const sum = Object.values(per).sort((a, b) => b.n - a.n);
     out.innerHTML = `<div style="font-weight:700;margin-bottom:8px">${esc(label)}: ${rows.length} update(s), ${sum.length} vehicle(s)</div>
       <div class="tw" style="margin-bottom:14px"><table><thead><tr><th>Vehicle Number</th><th>IMEI</th><th>Updates</th></tr></thead><tbody>${sum.map(s => `<tr style="cursor:default"><td><b>${esc(s.veh || '—')}</b></td><td><code>${esc(s.imei)}</code></td><td><span class="cnt">${s.n}</span></td></tr>`).join('')}</tbody></table></div>
-      <div class="tw"><table><thead><tr><th>#</th><th>Vehicle Number</th><th>IMEI</th><th>Date</th><th>Time</th></tr></thead><tbody>${rows.slice(0, 500).map((x, i) => { const dt = tdAmPm(x.t).split('|'); return `<tr style="cursor:default"><td>${i + 1}</td><td><b>${esc(x.veh || '—')}</b></td><td><code>${esc(x.imei)}</code></td><td>${dt[0]}</td><td>${dt[1]}</td></tr>`; }).join('')}</tbody></table></div>
+      <div class="tw"><table><thead><tr><th>#</th><th>Vehicle Number</th><th>IMEI</th><th>Date</th><th>Time</th></tr></thead><tbody>${rows.slice(0, 500).map((x, i) => { const dt = tdAmPm(x.t).split('|'); return `<tr style="cursor:default"><td>${i + 1}</td><td><b>${esc(x.veh || '—')}</b></td><td><code>${esc(x.imei)}</code></td><td>${dt[0]}</td><td>${dt[1]}${x.old ? ' <span class="ex">last update</span>' : ''}</td></tr>`; }).join('')}</tbody></table></div>
       ${rows.length > 500 ? '<div class="small" style="color:var(--muted);margin-top:8px">Showing the latest 500 of ' + rows.length + ' updates.</div>' : ''}`;
   } catch (e) { console.error(e); out.innerHTML = '<div class="warn">Could not load the report. ' + esc(errMsg(e)) + '</div>'; }
 }
@@ -2694,7 +2698,7 @@ function delMTrip(id) {
 
 /* ---------- create account (Admin only) ---------- */
 const USERS_KEY = 'billing-users-v1'; // old browser-only accounts (used for moving data)
-const PERMS = [['dash', 'Dashboard'], ['new', 'Create invoice'], ['invoices', 'View invoices'], ['addcust', 'Add customer inside Create invoice'], ['payment', 'Record payments'], ['inv', 'Inventory (view device list)'], ['invadd', 'Inventory: add / edit device manually'], ['invbulk', 'Inventory: bulk upload (Excel / CSV)'], ['recharge', 'Recharge Request (send requests to Admin)'], ['td', 'Update Tempering Data (IMEI only)'], ['delete', 'Delete single items only (bill, device)']];
+const PERMS = [['dash', 'Dashboard'], ['new', 'Create invoice'], ['invoices', 'View invoices'], ['addcust', 'Add customer inside Create invoice'], ['payment', 'Record payments'], ['inv', 'Inventory (view device list)'], ['invadd', 'Inventory: add / edit device manually'], ['invbulk', 'Inventory: bulk upload (Excel / CSV)'], ['recharge', 'Recharge Request (send requests to Admin)'], ['td', 'Update Tempering Data (IMEI only)'], ['report', 'Update Tempering Data: Report'], ['delete', 'Delete single items only (bill, device)']];
 const MINE_PERMS = [['mdash', 'Mines Dashboard'], ['mtrucks', 'Trucks (view list)'], ['mtrucksedit', 'Trucks: add / edit / delete'], ['mtrips', 'Trips & Loads (view)'], ['mtripsadd', 'Trips & Loads: add / delete entries']];
 const DEF_MINE = ['mdash', 'mtrucks', 'mtrips'];
 const DEF_PERMS = ['dash', 'new', 'invoices', 'inv', 'payment', 'addcust', 'invadd', 'invbulk', 'recharge'];
