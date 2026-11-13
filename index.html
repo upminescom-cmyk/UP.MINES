@@ -2278,26 +2278,11 @@ async function renderTD() {
       <div class="status"><h3><i class="dot" id="td-dot"></i>Status:</h3><div id="td-msg"></div>${adm ? '<div id="td-pk"></div>' : ''}</div>
       <div class="db-section glass">
         <div class="db-head"><h2>Vehicle Database</h2><div class="pills"><button class="pill edt" onclick="tdVltdAll()">Check all status</button><button class="pill add" onclick="tdForm()">+ Add Record</button></div></div>
-        <div class="fbar"><div><label for="td-dsel">Last updated — date wise</label><select id="td-dsel" onchange="tdSetDate(this.value)"></select></div><div><label for="td-dinp">Or pick a date</label><input id="td-dinp" type="date" onchange="tdSetDate(this.value)"></div><div style="flex:0 0 auto;min-width:0"><button class="pill sel" style="height:42px" onclick="tdSetDate('')">Clear filter</button></div></div>
+        <div class="fbar"><div><label for="td-dsel">Last updated — date wise</label><select id="td-dsel" onchange="tdSetDate(this.value)"></select></div><div><label for="td-dinp">Or pick a date</label><input id="td-dinp" type="date" onchange="tdSetDate(this.value)"></div><div style="flex:0 0 auto;min-width:0"><button class="pill sel" style="height:42px" onclick="tdSetDate('')">Clear filter</button></div>${adm ? `<div style="flex:0 0 auto;min-width:0"><label style="display:flex;gap:6px;align-items:center;margin:0 0 12px;cursor:pointer"><input type="checkbox" style="width:auto;height:auto" ${tdShowPaid ? 'checked' : ''} onchange="tdTogglePaid(this.checked)">Show Done records</label></div>` : ''}</div>
         <div class="fcnt" id="td-dcnt"></div>
         <div class="tw"><table><thead><tr><th>Serial no</th>${adm ? '<th>User</th>' : ''}<th>Vehicle Number</th><th>IMEI</th><th>count of packets send</th><th>Last updated</th><th>VLTD status</th><th>Payment status</th><th>action</th></tr></thead>
           <tbody id="td-db"><tr><td colspan="${adm ? 9 : 8}" class="empty">Loading…</td></tr></tbody></table></div>
       </div>
-      ${can('report') ? `<div class="db-section glass">
-        <div class="db-head"><h2>Report</h2></div>
-        <div class="two" style="align-items:end">
-          <div><label for="tr-rng" style="color:var(--muted);font-size:12px">Report type</label>
-            <select id="tr-rng" onchange="$('#tr-cus').hidden = this.value !== 'custom'">
-              <option value="1">Last 1 hour</option><option value="2">Last 2 hours</option><option value="6">Last 6 hours</option>
-              <option value="12">Last 12 hours</option><option value="24" selected>Last 24 hours</option><option value="custom">Custom date</option></select></div>
-          <div><button class="pill add" style="height:44px;width:100%" onclick="tdReport()">Show Report</button></div>
-        </div>
-        <div class="two" id="tr-cus" hidden style="margin-top:10px">
-          <div><label for="tr-from" style="color:var(--muted);font-size:12px">From date</label><input id="tr-from" type="date" value="${today()}"></div>
-          <div><label for="tr-to" style="color:var(--muted);font-size:12px">To date</label><input id="tr-to" type="date" value="${today()}"></div>
-        </div>
-        <div id="tr-out" style="margin-top:14px"><div class="small" style="color:var(--muted)">Choose a report type and press Show Report.</div></div>
-      </div>` : ''}
     </div>
   </div></div>`;
   tdStatus(tdMsg.t, tdMsg.s);
@@ -2360,7 +2345,7 @@ async function tdPay(o, id, el) {
   const r = tdFind(o, id); if (!r) return;
   const old = r.pay || 'Pending', val = el.value;
   r.pay = val; el.className = 'paysel ' + tdPayCls(val);
-  try { await tdSaveRec(r, true); toast('Payment status: ' + val); }
+  try { await tdSaveRec(r, true); toast('Payment status: ' + val); tdDraw(); }
   catch (e) { console.error(e); r.pay = old; el.value = old; el.className = 'paysel ' + tdPayCls(old); toast('Could not save: ' + errMsg(e)); }
 }
 function tdSelect(o, id) {
@@ -2506,6 +2491,7 @@ async function tdReport() {
     from = new Date(a + 'T00:00:00'); to = new Date(b + 'T23:59:59.999');
     if (from > to) { toast('From date must be before To date.'); return; }
   } else { to = new Date(); from = new Date(to.getTime() - (+rng) * 3600000); }
+  tdRepShown = true;
   out.innerHTML = '<div class="small" style="color:var(--muted)">Loading report…</div>';
   try {
     let q = sb.from('ib_docs').select('owner,data').like('kind', TDL + '%').gte('updated_at', from.toISOString()).order('updated_at', {ascending: false}).limit(1000);
@@ -2516,10 +2502,11 @@ async function tdReport() {
     // older data: only the last packet time was saved for these vehicles, so show that one entry
     const have = new Set(rows.map(x => x.imei));
     tdVeh.forEach(v => { if (have.has(v.imei) || !v.last) return; const t = new Date(v.last); if (!isNaN(t) && t >= from && t <= to) rows.push({t, imei: v.imei, veh: v.vehicle || '', old: true}); });
+    if (tddQs.trim()) { for (let i = rows.length - 1; i >= 0; i--) if (!tddMatch(rows[i].imei, rows[i].veh)) rows.splice(i, 1); }
     rows.sort((a, b) => b.t - a.t);
     const per = {}; rows.forEach(x => { per[x.imei] = per[x.imei] || {imei: x.imei, veh: x.veh, n: 0}; per[x.imei].n++; });
     const label = rng === 'custom' ? fmtD($('#tr-from').value) + ' to ' + fmtD($('#tr-to').value) : 'Last ' + rng + ' hour' + (rng === '1' ? '' : 's');
-    if (!rows.length) { out.innerHTML = `<div class="empty">No data was updated (${esc(label)}).</div>`; return; }
+    if (!rows.length) { out.innerHTML = `<div class="empty">No data was updated (${esc(label)})${tddQs.trim() ? ' for "' + esc(tddQs.trim()) + '"' : ''}.</div>`; return; }
     const sum = Object.values(per).sort((a, b) => b.n - a.n);
     out.innerHTML = `<div style="font-weight:700;margin-bottom:8px">${esc(label)}: ${rows.length} update(s), ${sum.length} vehicle(s)</div>
       <div class="tw" style="margin-bottom:14px"><table><thead><tr><th>Vehicle Number</th><th>IMEI</th><th>Updates</th></tr></thead><tbody>${sum.map(s => `<tr style="cursor:default"><td><b>${esc(s.veh || '—')}</b></td><td><code>${esc(s.imei)}</code></td><td><span class="cnt">${s.n}</span></td></tr>`).join('')}</tbody></table></div>
@@ -2533,19 +2520,23 @@ let tdDate = '';
 const tdZ = n => String(n).padStart(2, '0');
 const tdKey = d => d.getFullYear() + '-' + tdZ(d.getMonth() + 1) + '-' + tdZ(d.getDate());
 const tdDateOf = v => { const d = new Date(v.updated || v.last || v.created || ''); return isNaN(d) ? '' : tdKey(d); };
-const tdFiltered = () => tdDate ? tdVeh.filter(v => tdDateOf(v) === tdDate) : tdVeh;
+let tdShowPaid = false;
+const tdPaid = v => v.pay === 'Done' || v.pay === 'Bill Done';
+const tdVis = () => tdShowPaid ? tdVeh : tdVeh.filter(v => !tdPaid(v));
+const tdFiltered = () => tdDate ? tdVis().filter(v => tdDateOf(v) === tdDate) : tdVis();
+function tdTogglePaid(on) { tdShowPaid = !!on; tdDraw(); }
 function tdSetDate(v) { tdDate = v || ''; tdDraw(); }
 function tdFBar() {
   const sel = $('#td-dsel'), cnt = $('#td-dcnt'); if (!sel) return;
-  const m = {}; tdVeh.forEach(v => { const k = tdDateOf(v); if (k) m[k] = (m[k] || 0) + 1; });
-  const keys = Object.keys(m).sort().reverse(), sig = keys.map(k => k + ':' + m[k]).join('|') + '#' + tdDate;
+  const vis = tdVis(), hid = tdVeh.length - vis.length, m = {}; vis.forEach(v => { const k = tdDateOf(v); if (k) m[k] = (m[k] || 0) + 1; });
+  const keys = Object.keys(m).sort().reverse(), sig = keys.map(k => k + ':' + m[k]).join('|') + '#' + tdDate + '#' + tdShowPaid;
   if (sel.dataset.sig !== sig) {
     sel.dataset.sig = sig;
-    sel.innerHTML = '<option value="">All dates (' + tdVeh.length + ' vehicles)</option>' + keys.map(k => `<option value="${k}">${fmtD(k)} — ${m[k]} vehicle${m[k] > 1 ? 's' : ''}</option>`).join('');
+    sel.innerHTML = '<option value="">All dates (' + vis.length + ' vehicles)</option>' + keys.map(k => `<option value="${k}">${fmtD(k)} — ${m[k]} vehicle${m[k] > 1 ? 's' : ''}</option>`).join('');
     sel.value = keys.includes(tdDate) ? tdDate : '';
   }
   const inp = $('#td-dinp'); if (inp && inp.value !== tdDate) inp.value = tdDate;
-  if (cnt) cnt.textContent = tdDate ? (m[tdDate] || 0) + ' vehicle(s) updated on ' + fmtD(tdDate) : 'Total ' + tdVeh.length + ' vehicle(s) — pick a date to filter by Last updated';
+  if (cnt) cnt.textContent = tdDate ? (m[tdDate] || 0) + ' vehicle(s) updated on ' + fmtD(tdDate) : 'Total ' + vis.length + ' vehicle(s)' + (hid ? ' (' + hid + ' Done record(s) hidden, see Tempering Dashboard report)' : '') + ' — pick a date to filter by Last updated';
 }
 
 /* ---------- Tempering Dashboard (graphs) ---------- */
@@ -2576,15 +2567,45 @@ function tddDonut(items) {
   return `<div class="dn"><svg viewBox="0 0 160 160" role="img"><circle cx="80" cy="80" r="${r}" fill="none" stroke="rgba(148,163,184,.2)" stroke-width="24"/>${arcs}<text x="80" y="82" text-anchor="middle" font-size="28" font-weight="800" fill="#16202e">${tot}</text><text x="80" y="100" text-anchor="middle" font-size="11" fill="#64748b">vehicles</text></svg>
     <div class="dl">${items.map(i => `<div><i style="background:${i.c}"></i>${esc(i.l)}<b>${i.v}</b></div>`).join('')}</div></div>`;
 }
+let tddQs = '', tddT = null, tdRepShown = false;
+const tddMatch = (imei, veh) => { const q = tddQs.trim(); if (!q) return true; const n = normVeh(q); return String(imei || '').toLowerCase().includes(q.toLowerCase()) || (!!n && normVeh(veh).includes(n)); };
+function tddSearch(v) {
+  tddQs = v || ''; clearTimeout(tddT);
+  tddT = setTimeout(() => { if (tab !== 'tdash') return; tddDevices(); if (tdRepShown) tdReport(); }, 250);
+}
+function tddDevices() {
+  const el = $('#tdd-dev'); if (!el) return;
+  const adm = cur.role === 'admin', list = tdVeh.filter(v => tddMatch(v.imei, v.vehicle)).sort((a, b) => String(b.updated || b.last || b.created || '').localeCompare(String(a.updated || a.last || a.created || '')));
+  el.innerHTML = `<div class="db-section glass"><div class="db-head"><h2>All Devices — Update Details</h2><span class="small" style="color:var(--muted)">${list.length} device(s)${tddQs.trim() ? ' found' : ''}, including Done records</span></div>
+    <div class="tw"><table><thead><tr><th>#</th><th>IMEI</th><th>Vehicle Number</th><th>Last update</th><th>Update by</th><th>Payment status</th></tr></thead><tbody>${list.length ? list.map((v, i) => `<tr style="cursor:default"><td>${i + 1}</td><td><code>${esc(v.imei)}</code></td><td><b>${esc(v.vehicle || '—')}</b></td><td>${esc(tdFmtDT(v.updated || v.last || v.created))}</td><td>${esc(v.by || v.user || '—')}${adm && v.user && v.by !== v.user ? `<div class="small" style="color:var(--muted)">${esc(v.user)}</div>` : ''}</td><td><span class="paysel ${tdPayCls(TD_PAY.some(p => p[0] === v.pay) ? v.pay : 'Pending')}" style="display:inline-flex;align-items:center">${TD_PAY.some(p => p[0] === v.pay) ? v.pay : 'Pending'}</span></td></tr>`).join('') : `<tr><td colspan="6" class="empty">${tddQs.trim() ? 'No device matches this search.' : 'No devices yet.'}</td></tr>`}</tbody></table></div></div>`;
+}
 function tddSetDays(n) { tddDays = n; renderTDash(); }
 async function renderTDash() {
   if (!cur) return;
+  tdRepShown = false;
   const seg = [7, 14, 30].map(d => `<button class="${d === tddDays ? 'on' : ''}" onclick="tddSetDays(${d})">${d} days</button>`).join('');
   $('#main').innerHTML = `<div class="bar"><h2 style="margin:0">Tempering Dashboard</h2><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="tdseg">${seg}</div><button class="ghost" onclick="renderTDash()">Refresh</button></div></div>
-    <div class="tdp tdd"><div id="tdd-body"><div class="nodata">Loading dashboard…</div></div></div>`;
+    <div class="tdp tdd"><div class="glass" style="padding:14px 18px;margin-bottom:16px"><div class="fbar" style="margin:0"><div style="flex:1 1 260px"><label for="tdd-q">Search IMEI or vehicle number</label><input id="tdd-q" type="search" placeholder="e.g. 861409079049863 or UP63BT4161" value="${esc(tddQs)}" oninput="tddSearch(this.value)" autocomplete="off"></div><div style="flex:0 0 auto;min-width:0"><button class="pill sel" style="height:42px" onclick="$('#tdd-q').value = ''; tddSearch('')">Clear</button></div></div></div><div id="tdd-body"><div class="nodata">Loading dashboard…</div></div>
+      ${can('report') ? `<div class="db-section glass">
+        <div class="db-head"><h2>Report</h2></div>
+        <div class="two" style="align-items:end">
+          <div><label for="tr-rng" style="color:var(--muted);font-size:12px">Report type</label>
+            <select id="tr-rng" onchange="$('#tr-cus').hidden = this.value !== 'custom'">
+              <option value="1">Last 1 hour</option><option value="2">Last 2 hours</option><option value="6">Last 6 hours</option>
+              <option value="12">Last 12 hours</option><option value="24" selected>Last 24 hours</option><option value="custom">Custom date</option></select></div>
+          <div><button class="pill add" style="height:44px;width:100%" onclick="tdReport()">Show Report</button></div>
+        </div>
+        <div class="two" id="tr-cus" hidden style="margin-top:10px">
+          <div><label for="tr-from" style="color:var(--muted);font-size:12px">From date</label><input id="tr-from" type="date" value="${today()}"></div>
+          <div><label for="tr-to" style="color:var(--muted);font-size:12px">To date</label><input id="tr-to" type="date" value="${today()}"></div>
+        </div>
+        <div id="tr-out" style="margin-top:14px"><div class="small" style="color:var(--muted)">Choose a report type and press Show Report.</div></div>
+      </div>` : ''}
+<div id="tdd-dev"></div></div>`;
   if (tddBusy) return; tddBusy = true;
   try {
     await tdLoad(); if (tab !== 'tdash') return;
+    tddDevices();
     const now = new Date(), from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (tddDays - 1));
     let all = [];
     for (let p = 0; p < 20; p++) {
