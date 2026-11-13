@@ -2242,6 +2242,21 @@ async function renderTD() {
         <div class="tw"><table><thead><tr><th>Serial no</th>${adm ? '<th>User</th>' : ''}<th>Vehicle Number</th><th>IMEI</th><th>count of packets send</th><th>Last updated</th><th>VLTD status</th><th>Payment status</th><th>action</th></tr></thead>
           <tbody id="td-db"><tr><td colspan="${adm ? 9 : 8}" class="empty">Loading…</td></tr></tbody></table></div>
       </div>
+      <div class="db-section glass">
+        <div class="db-head"><h2>Report</h2></div>
+        <div class="two" style="align-items:end">
+          <div><label for="tr-rng" style="color:var(--muted);font-size:12px">Report type</label>
+            <select id="tr-rng" onchange="$('#tr-cus').hidden = this.value !== 'custom'">
+              <option value="1">Last 1 hour</option><option value="2">Last 2 hours</option><option value="6">Last 6 hours</option>
+              <option value="12">Last 12 hours</option><option value="24" selected>Last 24 hours</option><option value="custom">Custom date</option></select></div>
+          <div><button class="pill add" style="height:44px;width:100%" onclick="tdReport()">Show Report</button></div>
+        </div>
+        <div class="two" id="tr-cus" hidden style="margin-top:10px">
+          <div><label for="tr-from" style="color:var(--muted);font-size:12px">From date</label><input id="tr-from" type="date" value="${today()}"></div>
+          <div><label for="tr-to" style="color:var(--muted);font-size:12px">To date</label><input id="tr-to" type="date" value="${today()}"></div>
+        </div>
+        <div id="tr-out" style="margin-top:14px"><div class="small" style="color:var(--muted)">Choose a report type and press Show Report.</div></div>
+      </div>
     </div>
   </div></div>`;
   tdStatus(tdMsg.t, tdMsg.s);
@@ -2289,7 +2304,6 @@ function tdDraw() {
       <div style="margin-top:4px"><button class="pill edt" id="vs-${v.owner}-${v.id}" onclick="event.stopPropagation(); tdVltdCheck('${v.owner}', '${v.id}')">Check</button></div></td>
     <td>${tdPaySel(v)}</td>
     <td><div class="pills"><button class="pill sel" onclick="event.stopPropagation(); tdSelect('${v.owner}', '${v.id}')">Select</button>
-      <button class="pill edt" onclick="event.stopPropagation(); tdForm('${v.owner}', '${v.id}')">Edit</button>
       ${del ? `<button class="pill del" onclick="event.stopPropagation(); tdDelete('${v.owner}', '${v.id}')">Delete</button>` : ''}</div></td></tr>`).join('')
     : `<tr><td colspan="${adm ? 9 : 8}" class="empty">No vehicles yet. Add a record or press START LOOP.</td></tr>`;
 }
@@ -2424,6 +2438,49 @@ async function tdCount(j) { // one more packet sent for this IMEI
   rec.count = (+rec.count || 0) + 1; rec.last = new Date().toISOString();
   try { await tdSaveRec(rec); } catch (e) { console.error(e); toast('Packet count could not be saved: ' + errMsg(e)); }
   tdDraw();
+  await tdLog(rec);
+}
+/* packet log: one row per IMEI per hour, holding the time of every packet (used by the Report) */
+const TDL = 'tdlog:'; let tdLogB = {};
+async function tdLog(rec) {
+  const ts = new Date().toISOString(), kind = TDL + rec.imei + ':' + ts.slice(0, 13);
+  let b = tdLogB[kind];
+  if (!b) {
+    try { const q = await sb.from('ib_docs').select('data').eq('owner', rec.owner).eq('kind', kind).maybeSingle(); b = q.data && q.data.data && Array.isArray(q.data.data.t) ? q.data.data : null; } catch (e) { b = null; }
+    b = b || {imei: rec.imei, vehicle: rec.vehicle || '', t: []};
+    if (Object.keys(tdLogB).length > 40) tdLogB = {};
+    tdLogB[kind] = b;
+  }
+  b.t.push(ts); if (rec.vehicle) b.vehicle = rec.vehicle;
+  try { const w = await sb.from('ib_docs').upsert({owner: rec.owner, kind, data: b, updated_at: ts}, {onConflict: 'owner,kind'}); if (w.error) throw w.error; }
+  catch (e) { console.error(e); }
+}
+const tdAmPm = d => { const z = n => String(n).padStart(2, '0'), h = d.getHours(); return z(d.getDate()) + '-' + z(d.getMonth() + 1) + '-' + d.getFullYear() + '|' + z(h % 12 || 12) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds()) + ' ' + (h < 12 ? 'AM' : 'PM'); };
+async function tdReport() {
+  const out = $('#tr-out'), rng = $('#tr-rng').value; let from, to;
+  if (rng === 'custom') {
+    const a = $('#tr-from').value, b = $('#tr-to').value;
+    if (!a || !b) { toast('Select the From and To date.'); return; }
+    from = new Date(a + 'T00:00:00'); to = new Date(b + 'T23:59:59.999');
+    if (from > to) { toast('From date must be before To date.'); return; }
+  } else { to = new Date(); from = new Date(to.getTime() - (+rng) * 3600000); }
+  out.innerHTML = '<div class="small" style="color:var(--muted)">Loading report…</div>';
+  try {
+    let q = sb.from('ib_docs').select('owner,data').like('kind', TDL + '%').gte('updated_at', from.toISOString()).order('updated_at', {ascending: false}).limit(1000);
+    if (cur.role !== 'admin') q = q.eq('owner', cur.id);
+    const r = await q; if (r.error) throw r.error;
+    const rows = [];
+    r.data.forEach(x => { const d = x.data || {}; const veh = d.vehicle || ((tdVeh.find(v => v.imei === d.imei) || {}).vehicle) || ''; (d.t || []).forEach(s => { const t = new Date(s); if (t >= from && t <= to) rows.push({t, imei: d.imei, veh}); }); });
+    rows.sort((a, b) => b.t - a.t);
+    const per = {}; rows.forEach(x => { per[x.imei] = per[x.imei] || {imei: x.imei, veh: x.veh, n: 0}; per[x.imei].n++; });
+    const label = rng === 'custom' ? fmtD($('#tr-from').value) + ' to ' + fmtD($('#tr-to').value) : 'Last ' + rng + ' hour' + (rng === '1' ? '' : 's');
+    if (!rows.length) { out.innerHTML = `<div class="empty">No data was updated (${esc(label)}).</div>`; return; }
+    const sum = Object.values(per).sort((a, b) => b.n - a.n);
+    out.innerHTML = `<div style="font-weight:700;margin-bottom:8px">${esc(label)}: ${rows.length} update(s), ${sum.length} vehicle(s)</div>
+      <div class="tw" style="margin-bottom:14px"><table><thead><tr><th>Vehicle Number</th><th>IMEI</th><th>Updates</th></tr></thead><tbody>${sum.map(s => `<tr style="cursor:default"><td><b>${esc(s.veh || '—')}</b></td><td><code>${esc(s.imei)}</code></td><td><span class="cnt">${s.n}</span></td></tr>`).join('')}</tbody></table></div>
+      <div class="tw"><table><thead><tr><th>#</th><th>Vehicle Number</th><th>IMEI</th><th>Date</th><th>Time</th></tr></thead><tbody>${rows.slice(0, 500).map((x, i) => { const dt = tdAmPm(x.t).split('|'); return `<tr style="cursor:default"><td>${i + 1}</td><td><b>${esc(x.veh || '—')}</b></td><td><code>${esc(x.imei)}</code></td><td>${dt[0]}</td><td>${dt[1]}</td></tr>`; }).join('')}</tbody></table></div>
+      ${rows.length > 500 ? '<div class="small" style="color:var(--muted);margin-top:8px">Showing the latest 500 of ' + rows.length + ' updates.</div>' : ''}`;
+  } catch (e) { console.error(e); out.innerHTML = '<div class="warn">Could not load the report. ' + esc(errMsg(e)) + '</div>'; }
 }
 
 /* send loop */
