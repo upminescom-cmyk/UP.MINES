@@ -595,12 +595,18 @@ function applyRemote(r) { // call after fetchAll, then set acct and db = load()
   sent.hadCore = r.hadCore; lastPull = Date.now();
 }
 /* ---- Admin inventory shared with every user (read-only for users) ---- */
-let sharedDev = [], sentShare = '', sharedAt = 0;
+let sharedDev = [], sentShare = '', sharedAt = 0, devImg = '';
+const DI = 'devimg:'; // device photo rows are kept in ib_docs
+function devAdded(d) { // date the device was added (older devices: taken from the id)
+  if (d.added) return d.added;
+  const t = idTime(d.id); if (!t || t < 1577836800000 || t > Date.now() + 864e5) return '';
+  const x = new Date(t); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+}
 const allDevs = () => { const own = new Set(db.devices.map(d => d.imei)); return db.devices.concat(sharedDev.filter(d => !own.has(d.imei))); };
 async function pubShare() { // Admin: publish own inventory so users can see it
   if (!cur || cur.role !== 'admin' || !acct || acct.id !== cur.id) return;
   try {
-    const list = db.devices.map(d => ({id: d.id, imei: d.imei, iccid: d.iccid || '', vehicle: d.vehicle || '', name: d.name || '', phone: d.phone || '', plan: d.plan || '', expiry: d.expiry || ''}));
+    const list = db.devices.map(d => ({id: d.id, owner: cur.id, imei: d.imei, iccid: d.iccid || '', vehicle: d.vehicle || '', hasImg: !!d.hasImg, added: devAdded(d), expiry: d.expiry || ''}));
     const str = JSON.stringify(list); if (str === sentShare) return;
     const w = await sb.from('ib_docs').upsert({owner: cur.id, kind: 'devshare', data: {devices: list}, updated_at: new Date().toISOString()}, {onConflict: 'owner,kind'});
     if (w.error) throw w.error; sentShare = str;
@@ -1396,54 +1402,85 @@ function renderInventory() {
       <div class="grid">
         <div><label for="dv1">IMEI</label><input id="dv1" inputmode="numeric" value="${esc(d.imei)}" placeholder="Enter IMEI"></div>
         <div><label for="dv2">Vehicle number</label><input id="dv2" value="${esc(d.vehicle)}" placeholder="e.g. BR01AB1234" style="text-transform:uppercase"></div>
-        <div><label for="dv3">Name</label><input id="dv3" value="${esc(d.name)}" placeholder="Customer / owner name"></div>
-        <div><label for="dv4">Connect number</label><input id="dv4" inputmode="tel" value="${esc(d.phone)}" placeholder="SIM / mobile number"></div>
-        <div><label for="dv5">Vehicle expiry</label><input id="dv5" type="date" value="${esc(d.expiry)}"></div>
         <div><label for="dv6">SIM ICCID number</label><input id="dv6" inputmode="numeric" value="${esc(d.iccid || '')}" placeholder="19 or 20 digits"></div>
-        <div><label for="dv7">Recharge plan</label><select id="dv7"><option value="">Not set</option>${PLANS.map(x => `<option ${d.plan === x ? 'selected' : ''}>${x}</option>`).join('')}</select></div>
+        <div><label for="dv8">Device photo ${editD && d.hasImg ? '(already added, choose only to replace)' : '(required)'}</label><input id="dv8" type="file" accept="image/*" onchange="devPickImg(this.files[0])"></div>
       </div>
+      <img id="dv-prev" alt="Device photo" ${devImg ? `src="${devImg}"` : 'hidden'} style="max-width:180px;max-height:140px;margin-top:10px;border:1px solid var(--line);border-radius:8px">
       <div class="row-actions" style="margin-top:12px"><button class="btn" onclick="saveDevice()">${editD ? 'Update device' : 'Add device'}</button>${editD ? '<button class="ghost" onclick="editD = null; renderInventory()">Cancel</button>' : ''}</div></div>` : ''}
     ${can('invbulk') ? `<div class="card"><h3>Bulk upload</h3>
-      <p style="margin-top:0;color:var(--muted)">Upload an Excel (.xlsx, .xls) or CSV file with the columns <b>IMEI</b>, <b>Vehicle number</b>, <b>Name</b>, <b>Connect number</b>, <b>Vehicle expiry</b> (date as DD-MM-YYYY), and optionally <b>SIM ICCID</b> and <b>Recharge plan</b>. Format the IMEI and ICCID columns as Text in Excel.</p>
+      <p style="margin-top:0;color:var(--muted)">Upload an Excel (.xlsx, .xls) or CSV file with the columns <b>IMEI</b>, <b>Vehicle number</b> and <b>SIM ICCID</b>. Format the IMEI and ICCID columns as Text in Excel. Devices added by bulk upload have no photo.</p>
       <div class="grid">
         <div><label for="dvf">Excel / CSV file</label><input id="dvf" type="file" accept=".xlsx,.xls,.csv,.txt" onchange="importDevices(this.files[0]); this.value = ''"></div>
         <div><label for="dvm">If the IMEI already exists</label><select id="dvm"><option value="skip">Skip it</option><option value="update">Update its details</option></select></div>
       </div>
       <div class="row-actions" style="margin-top:12px"><button class="ghost" onclick="downloadTemplate()">Download Excel template</button></div></div>` : ''}
     <div class="card"><div class="bar"><h3 style="margin:0">All devices</h3>
-      <div class="row-actions"><input style="max-width:250px" placeholder="Search IMEI, ICCID, vehicle, name, number" value="${esc(devQ)}" oninput="devQ = this.value; drawDevRows()" aria-label="Search devices">
+      <div class="row-actions"><input style="max-width:250px" placeholder="Search IMEI, ICCID, vehicle" value="${esc(devQ)}" oninput="devQ = this.value; drawDevRows()" aria-label="Search devices">
         <select style="width:auto" onchange="devF = this.value; drawDevRows()" aria-label="Filter">${[['', 'All'], ['ok', 'Active'], ['soon', 'Expiring soon'], ['dead', 'Expired']].map(([v, l]) => `<option value="${v}" ${devF === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
         <button class="ghost" onclick="exportDevices()">Download list</button></div></div>
-      <div class="scroll"><table><thead><tr><th>IMEI</th><th>SIM ICCID</th><th>Vehicle number</th><th>Name</th><th>Connect number</th><th>Plan</th><th>Vehicle expiry</th><th></th></tr></thead><tbody id="dvRows"></tbody></table></div>
+      <div class="scroll"><table><thead><tr><th>IMEI</th><th>SIM ICCID</th><th>Vehicle number</th><th>Added on</th><th></th></tr></thead><tbody id="dvRows"></tbody></table></div>
       <div class="small" id="dvCount" style="color:var(--muted);margin-top:8px"></div></div>`;
   drawDevRows();
 }
 function drawDevRows() {
   const q = devQ.trim().toLowerCase();
-  const list = allDevs().filter(d => (!devF || expState(d.expiry).k === devF) && (!q || [d.imei, d.iccid, d.vehicle, d.name, d.phone].some(v => String(v || '').toLowerCase().includes(q))));
-  $('#dvRows').innerHTML = list.length ? list.slice(0, 300).map(d => { const st = expState(d.expiry);
-    return `<tr><td>${esc(d.imei)}</td><td>${esc(d.iccid || '')}</td><td><b>${esc(d.vehicle)}</b></td><td>${esc(d.name)}</td><td>${esc(d.phone)}</td><td>${esc(d.plan || '')}</td><td>${d.expiry ? fmtD(d.expiry) + ' ' : ''}<span class="ex ${st.k}">${st.t}</span></td>
-      <td><div class="row-actions">${d.shared ? '<span class="small" style="color:var(--muted)">Admin list</span>' : ''}${!d.shared && can('invadd') ? `<button class="ghost" onclick="editDevice('${d.id}')">Edit</button>` : ''}${!d.shared && can('delete') ? `<button class="ghost danger" onclick="delDevice('${d.id}')">Delete</button>` : ''}</div></td></tr>`; }).join('')
-    : '<tr><td colspan="8" class="empty">No devices here yet.</td></tr>';
+  const list = allDevs().filter(d => (!devF || expState(d.expiry).k === devF) && (!q || [d.imei, d.iccid, d.vehicle].some(v => String(v || '').toLowerCase().includes(q))));
+  $('#dvRows').innerHTML = list.length ? list.slice(0, 300).map(d => {
+    return `<tr><td>${esc(d.imei)}</td><td>${esc(d.iccid || '')}</td><td><b>${esc(d.vehicle)}</b></td><td>${esc(fmtD(devAdded(d)))}</td>
+      <td><div class="row-actions">${d.hasImg ? `<button class="ghost" onclick="openDevImg('${d.id}')">Photo</button>` : '<span class="small" style="color:var(--muted)">No photo</span>'}${d.shared ? '<span class="small" style="color:var(--muted)">Admin list</span>' : ''}${!d.shared && can('invadd') ? `<button class="ghost" onclick="editDevice('${d.id}')">Edit</button>` : ''}${!d.shared && can('delete') ? `<button class="ghost danger" onclick="delDevice('${d.id}')">Delete</button>` : ''}</div></td></tr>`; }).join('')
+    : '<tr><td colspan="5" class="empty">No devices here yet.</td></tr>';
   $('#dvCount').textContent = allDevs().length ? 'Showing ' + Math.min(list.length, 300) + ' of ' + list.length + ' device(s)' + (list.length > 300 ? '. Use search to narrow down.' : '') : '';
 }
 function editDevice(id) { if (!can('invadd')) return; editD = id; renderInventory(); window.scrollTo(0, 0); }
-function saveDevice() {
-  if (!can('invadd')) return;
+async function devPickImg(file) {
+  if (!file) return;
+  const im = await readImg(file);
+  if (!im) { toast('This image could not be read. Try another photo.'); devImg = ''; const pv0 = $('#dv-prev'); if (pv0) pv0.hidden = true; return; }
+  const k = Math.min(1, 1000 / Math.max(im.width, im.height)), sc = document.createElement('canvas');
+  sc.width = Math.round(im.width * k); sc.height = Math.round(im.height * k);
+  sc.getContext('2d').drawImage(im, 0, 0, sc.width, sc.height);
+  devImg = sc.toDataURL('image/jpeg', 0.7);
+  const pv = $('#dv-prev'); if (pv) { pv.src = devImg; pv.hidden = false; }
+}
+let devSaving = false;
+async function saveDevice() {
+  if (!can('invadd') || devSaving) return;
   const imei = $('#dv1').value.trim().replace(/\s+/g, '');
   if (!okImei(imei)) { toast('Enter a valid IMEI (8 to 20 digits).'); return; }
   if (db.devices.some(x => x.imei === imei && x.id !== editD)) { toast('This IMEI is already in inventory.'); return; }
   const iccid = $('#dv6').value.trim().replace(/\s+/g, '');
   if (iccid && !/^\d{18,22}$/.test(iccid)) { toast('SIM ICCID must be 18 to 22 digits.'); return; }
-  const data = {imei, vehicle: normVeh($('#dv2').value), name: $('#dv3').value.trim(), phone: $('#dv4').value.trim(), expiry: $('#dv5').value, iccid, plan: $('#dv7').value};
-  const was = editD;
-  if (was) Object.assign(db.devices.find(x => x.id === was), data); else db.devices.unshift(Object.assign({id: uid()}, data));
-  editD = null; save(); toast(was ? 'Device updated' : 'Device added'); renderInventory();
+  const was = editD, old = was ? db.devices.find(x => x.id === was) : null;
+  if (!devImg && !(old && old.hasImg)) { toast('Device photo is required. Please add the photo.'); return; }
+  const data = {imei, vehicle: normVeh($('#dv2').value), iccid};
+  const id = was || uid();
+  devSaving = true;
+  try {
+    if (devImg) {
+      const w = await sb.from('ib_docs').upsert({owner: acct.id, kind: DI + id, data: {img: devImg}, updated_at: new Date().toISOString()}, {onConflict: 'owner,kind'});
+      if (w.error) throw w.error;
+      data.hasImg = true;
+    }
+  } catch (e) { console.error(e); devSaving = false; toast('Photo could not be saved: ' + errMsg(e)); return; }
+  devSaving = false;
+  if (was) Object.assign(old, data); else db.devices.unshift(Object.assign({id, added: today()}, data));
+  editD = null; devImg = ''; save(); toast(was ? 'Device updated' : 'Device added'); renderInventory(); pubShare();
+}
+async function openDevImg(id) {
+  const d = allDevs().find(x => x.id === id); if (!d) return;
+  try {
+    const w = await sb.from('ib_docs').select('data').eq('owner', d.shared ? d.owner : acct.id).eq('kind', DI + id).maybeSingle();
+    if (w.error) throw w.error;
+    if (!w.data) { toast('No photo found.'); return; }
+    $('#paybox').innerHTML = `<h3>Device photo</h3><div class="small" style="color:var(--muted);margin-bottom:10px">${esc(d.vehicle || '')} · IMEI ${esc(d.imei)}</div><img src="${w.data.data.img}" alt="Device" style="max-width:100%;border:1px solid var(--line);border-radius:8px"><div style="margin-top:14px"><button class="ghost" onclick="closePay()">Close</button></div>`;
+    $('#pay').hidden = false;
+  } catch (e) { console.error(e); toast('Could not open the photo: ' + errMsg(e)); }
 }
 function delDevice(id) {
   if (!can('delete')) return;
   const d = db.devices.find(x => x.id === id); if (!d || !confirm('Delete device ' + d.imei + '?')) return;
-  db.devices = db.devices.filter(x => x.id !== id); save(); renderInventory();
+  db.devices = db.devices.filter(x => x.id !== id); save(); renderInventory(); pubShare();
+  if (d.hasImg) sb.from('ib_docs').delete().eq('owner', acct.id).eq('kind', DI + id).then(() => {}, () => {});
 }
 const toISO = v => {
   if (v instanceof Date) return isNaN(v) ? '' : v.getFullYear() + '-' + p2(v.getMonth() + 1) + '-' + p2(v.getDate());
@@ -1489,11 +1526,11 @@ async function saveSheet(rows, base) {
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   }
 }
-const DEV_HEAD = ['IMEI', 'Vehicle number', 'Name', 'Connect number', 'Vehicle expiry', 'SIM ICCID', 'Recharge plan'];
+const DEV_HEAD = ['IMEI', 'Vehicle number', 'SIM ICCID'];
 function downloadTemplate() { saveSheet([DEV_HEAD], 'inventory-template'); }
 function exportDevices() {
   if (!db.devices.length) { toast('No devices to download.'); return; }
-  saveSheet([DEV_HEAD].concat(db.devices.map(d => [d.imei, d.vehicle, d.name, d.phone, fmtD(d.expiry), d.iccid || '', d.plan || ''])), 'inventory-' + today());
+  saveSheet([DEV_HEAD].concat(db.devices.map(d => [d.imei, d.vehicle, d.iccid || ''])), 'inventory-' + today());
 }
 async function importDevices(file) {
   if (!file || !can('invbulk')) return;
@@ -1506,8 +1543,8 @@ async function importDevices(file) {
   if (!rows.length) { toast('The file is empty.'); return; }
   const h = rows[0].map(c => String(c).toLowerCase()), used = new Set();
   const col = re => { const k = h.findIndex((c, j) => !used.has(j) && re.test(c)); if (k >= 0) used.add(k); return k; };
-  let ci = {imei: col(/imei/), ic: col(/iccid/), pl: col(/plan/), exp: col(/expir|valid|due/), veh: col(/vehicle|reg|plate/), ph: col(/connect|sim|mobile|phone|contact/), nm: col(/name|owner|customer|device/)};
-  const head = ci.imei >= 0; if (!head) ci = {imei: 0, veh: 1, nm: 2, ph: 3, exp: 4, ic: 5, pl: 6};
+  let ci = {imei: col(/imei/), ic: col(/iccid/), veh: col(/vehicle|reg|plate/)};
+  const head = ci.imei >= 0; if (!head) ci = {imei: 0, veh: 1, ic: 2};
   const get = (r, k) => k < 0 || r[k] == null ? '' : r[k];
   const have = new Map(db.devices.map(d => [d.imei, d])), seen = new Set(), fresh = [], upd = [], mode = $('#dvm') ? $('#dvm').value : 'skip';
   let dup = 0, bad = 0, nodate = 0;
@@ -1516,10 +1553,9 @@ async function importDevices(file) {
     if (!okImei(imei)) { bad++; return; }
     if (seen.has(imei)) { dup++; return; }
     seen.add(imei);
-    const ex = get(r, ci.exp), expiry = toISO(ex); if (String(ex).trim() && !expiry) nodate++;
-    const data = {imei, vehicle: normVeh(get(r, ci.veh)), name: String(get(r, ci.nm)).trim(), phone: String(get(r, ci.ph)).trim(), expiry, iccid: String(get(r, ci.ic)).replace(/\D/g, ''), plan: String(get(r, ci.pl)).trim()};
+    const data = {imei, vehicle: normVeh(get(r, ci.veh)), iccid: String(get(r, ci.ic)).replace(/\D/g, '')};
     const o = have.get(imei);
-    if (!o) fresh.push(Object.assign({id: uid() + fresh.length}, data)); else if (mode === 'update') upd.push([o, data]); else dup++;
+    if (!o) fresh.push(Object.assign({id: uid() + fresh.length, added: today()}, data)); else if (mode === 'update') upd.push([o, data]); else dup++;
   });
   if (!fresh.length && !upd.length) { toast('Nothing to add. ' + dup + ' already exist, ' + bad + ' row(s) have no valid IMEI.'); return; }
   if (!confirm(fresh.length + ' new device(s)' + (upd.length ? ' and ' + upd.length + ' update(s)' : '') + ' found in the file.' + (dup ? '\n' + dup + ' repeated / existing IMEI skipped.' : '') + (bad ? '\n' + bad + ' row(s) skipped: IMEI missing or not valid.' : '') + (nodate ? '\n' + nodate + ' expiry date(s) not understood and left blank.' : '') + '\n\nContinue?')) return;
