@@ -2524,6 +2524,20 @@ async function tdVltdCheck(o, id, quiet) {
     return false;
   }
 }
+/* IMEI / vehicle already in Inventory or Tempering Dashboard -> it is NOT added to the Vehicle Database; only new ones are added */
+function tdKnown(imei, veh) {
+  const n = normVeh(veh);
+  return allDevs().some(d => d.imei === imei || (n && normVeh(d.vehicle) === n))
+    || tdVeh.some(v => v.imei === imei || (n && normVeh(v.vehicle) === n));
+}
+async function tdVltdRaw(veh) { // status check without a saved record
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 30000);
+  try {
+    const res = await fetch(TD_VLTD, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({vehicle: veh}), signal: ctl.signal});
+    const j = await res.json(); if (!j || !j.ok) throw new Error((j && j.error) || 'Status not found');
+    return /^active$/i.test(String(j.status).trim()) ? 'Active' : 'Inactive';
+  } finally { clearTimeout(t); }
+}
 /* "CHECK VEHICLE STATUS" button: IMEI + vehicle number typed on the left, saved in the list, then status is checked */
 async function tdCheckBtn() {
   if (!cur || !can('td')) return;
@@ -2533,6 +2547,12 @@ async function tdCheckBtn() {
   const btn = $('#td-chk'); if (btn) btn.disabled = true;
   try {
     let rec = (tdSel && tdVeh.find(v => v.owner + '/' + v.id === tdSel && v.imei === imei)) || tdVeh.find(v => v.owner === cur.id && v.imei === imei);
+    if (!rec && tdKnown(imei, veh)) { // already in Inventory / Dashboard: check the status only, do not add a record
+      tdStatus('Checking status of ' + veh + '…', 'sending');
+      try { const st = await tdVltdRaw(veh); tdStatus(veh + ': VLTD ' + st + (st === 'Active' ? '' : ' (not active)'), st === 'Active' ? 'run' : 'err'); }
+      catch (e) { tdStatus('Could not check the status of ' + veh + '. Please try again.', 'err'); }
+      return;
+    }
     if (!rec) {
       const c = tdCfg();
       rec = {id: uid(), owner: cur.id, imei, vehicle: veh, vltd: '', vltdAt: '', pay: 'Pending', lat: c.lat, lon: c.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()};
@@ -2558,6 +2578,7 @@ async function tdVltdAll() {
 }
 async function tdCount(j) { // one more packet sent for this IMEI
   let rec = tdVeh.find(v => v.owner === j.owner && v.imei === j.imei);
+  if (!rec && tdKnown(j.imei, j.veh)) { await tdLog({owner: j.owner, imei: j.imei, vehicle: j.veh || ''}); return; } // already in Inventory / Dashboard: not added to Vehicle Database
   if (!rec) { rec = {id: uid(), owner: j.owner, imei: j.imei, vehicle: j.veh || '', pay: 'Pending', lat: j.lat, lon: j.lon, count: 0, by: cur.name || cur.username, user: cur.username, created: new Date().toISOString()}; tdVeh.push(rec); }
   if (j.veh && !rec.vehicle) rec.vehicle = j.veh;
   if (cur.role !== 'admin') { try { const q = await sb.from('ib_docs').select('data').eq('owner', rec.owner).eq('kind', TDV + rec.id).maybeSingle(); if (q.data && q.data.data && q.data.data.pay) rec.pay = q.data.data.pay; } catch (e) { /* keep */ } } // do not overwrite Admin's payment status
@@ -2759,7 +2780,7 @@ async function tdStart() {
   const c = adm ? tdReadCfg('tp') : tdCfg();
   if (!c.ip || !(+c.port > 0 && +c.port < 65536)) { tdStatus('Server IP / port is not set. Ask the Admin.', 'err'); return; }
   let sel = tdSel ? tdVeh.find(v => v.owner + '/' + v.id === tdSel) : null;
-  if (!sel || sel.imei !== imei) sel = tdVeh.find(v => v.owner === cur.id && v.imei === imei) || null;
+  if (!sel || sel.imei !== imei) sel = tdVeh.find(v => v.owner === cur.id && v.imei === imei) || tdVeh.find(v => v.imei === imei) || null;
   const num = (x, d) => { const n = parseFloat(x); return Number.isFinite(n) ? n : parseFloat(d); };
   const fix = (n, d) => Number.isFinite(n) ? n : parseFloat(d);
   const lat = fix(adm ? num(c.lat, TD_DEF.lat) : num(sel && sel.lat, c.lat), TD_DEF.lat), lon = fix(adm ? num(c.lon, TD_DEF.lon) : num(sel && sel.lon, c.lon), TD_DEF.lon);
@@ -2784,7 +2805,7 @@ async function tdLoop() {
 async function tdSendOnce() {
   const j = tdJob; if (!j) return;
   const rec = tdVeh.find(v => v.owner === j.owner && v.imei === j.imei);
-  const packet = tdPacket(j.imei, j.lat, j.lon, ((rec && +rec.count) || 0) + 1);
+  const packet = tdPacket(j.imei, j.lat, j.lon, (rec ? (+rec.count || 0) : tdSent) + 1);
   tdPkt = j.adm ? packet : ''; const pk = $('#td-pk'); if (pk) pk.textContent = tdPkt;
   tdStatus('Sending packet…', 'sending');
   let ok = false, err = '', res = {};
