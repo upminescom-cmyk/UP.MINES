@@ -594,7 +594,31 @@ function applyRemote(r) { // call after fetchAll, then set acct and db = load()
   r.invoices.forEach(i => { sent.inv[i.id] = JSON.stringify(i); });
   sent.hadCore = r.hadCore; lastPull = Date.now();
 }
+/* ---- Admin inventory shared with every user (read-only for users) ---- */
+let sharedDev = [], sentShare = '', sharedAt = 0;
+const allDevs = () => { const own = new Set(db.devices.map(d => d.imei)); return db.devices.concat(sharedDev.filter(d => !own.has(d.imei))); };
+async function pubShare() { // Admin: publish own inventory so users can see it
+  if (!cur || cur.role !== 'admin' || !acct || acct.id !== cur.id) return;
+  try {
+    const list = db.devices.map(d => ({id: d.id, imei: d.imei, iccid: d.iccid || '', vehicle: d.vehicle || '', name: d.name || '', phone: d.phone || '', plan: d.plan || '', expiry: d.expiry || ''}));
+    const str = JSON.stringify(list); if (str === sentShare) return;
+    const w = await sb.from('ib_docs').upsert({owner: cur.id, kind: 'devshare', data: {devices: list}, updated_at: new Date().toISOString()}, {onConflict: 'owner,kind'});
+    if (w.error) throw w.error; sentShare = str;
+  } catch (e) { console.error('devshare publish', e); }
+}
+async function loadShared(force) { // User: read the Admin inventory
+  if (!cur || cur.role !== 'user') { sharedDev = []; return; }
+  if (!force && Date.now() - sharedAt < 30000) return;
+  sharedAt = Date.now();
+  try {
+    const r = await sb.from('ib_docs').select('data').eq('kind', 'devshare').limit(1).maybeSingle();
+    const l = r.data && r.data.data && r.data.data.devices;
+    sharedDev = Array.isArray(l) ? l.map(d => Object.assign({}, d, {shared: true})) : [];
+  } catch (e) { sharedDev = []; }
+  if (tab === 'inv' && $('#dvRows')) { drawDevRows(); const st = $('#main .ivg'); if (st) st.outerHTML = devStatus(); }
+}
 function afterLoad() { // db is ready: remember what the server already has
+  if (cur && cur.role === 'admin') pubShare(); else loadShared(true);
   sent.core = sent.hadCore ? JSON.stringify(coreOf(db)) : '';
   dirty = false; syncFail = 0; setSync('ok', 'All changes saved');
   const o = acct.id; getSig(o).then(x => { if (acct && acct.id === o) lastSig = x; }).catch(() => {});
@@ -631,7 +655,7 @@ async function doSync() {
       if (r.error) throw r.error;
       part.forEach(id => { delete sent.inv[id]; });
     }
-    syncFail = 0;
+    syncFail = 0; pubShare();
     if (!dirty) { try { lastSig = await getSig(owner); } catch (e) { /* ignore */ } }
     setSync(dirty ? 'busy' : 'ok', dirty ? 'Saving…' : 'All changes saved');
   } catch (e) {
@@ -1357,13 +1381,14 @@ function expState(d) {
   return n < 0 ? {k: 'dead', t: 'Expired'} : n <= 30 ? {k: 'soon', t: n === 0 ? 'Expires today' : n + ' day' + (n > 1 ? 's' : '') + ' left'} : {k: 'ok', t: 'Active'};
 }
 function devStatus() {
-  const c = {all: db.devices.length, ok: 0, soon: 0, dead: 0}, click = can('inv');
-  db.devices.forEach(d => { const k = expState(d.expiry).k; if (k) c[k]++; });
+  const c = {all: allDevs().length, ok: 0, soon: 0, dead: 0}, click = can('inv');
+  allDevs().forEach(d => { const k = expState(d.expiry).k; if (k) c[k]++; });
   const t = (k, l, n, cls) => `<div class="ivt ${cls} ${click ? 'click' : ''}" ${click ? `role="button" tabindex="0" onclick="openDev('${k}')" onkeydown="if (event.key === 'Enter') openDev('${k}')"` : ''}><div class="nm">${l}</div><div class="q">${n}</div></div>`;
   return '<div class="ivg">' + t('', 'All devices', c.all, '') + t('ok', 'Active', c.ok, '') + t('soon', 'Expiring in 30 days', c.soon, 'low') + t('dead', 'Expired', c.dead, 'out') + '</div>';
 }
 function openDev(f) { if (!can('inv')) return; devF = f; devQ = ''; editD = null; go('inv'); }
 function renderInventory() {
+  if (cur && cur.role === 'user') loadShared();
   const d = db.devices.find(x => x.id === editD) || {imei: '', vehicle: '', name: '', phone: '', expiry: '', iccid: '', plan: ''};
   $('#main').innerHTML = `<h2>Inventory</h2>
     <div class="card">${devStatus()}</div>
@@ -1395,12 +1420,12 @@ function renderInventory() {
 }
 function drawDevRows() {
   const q = devQ.trim().toLowerCase();
-  const list = db.devices.filter(d => (!devF || expState(d.expiry).k === devF) && (!q || [d.imei, d.iccid, d.vehicle, d.name, d.phone].some(v => String(v || '').toLowerCase().includes(q))));
+  const list = allDevs().filter(d => (!devF || expState(d.expiry).k === devF) && (!q || [d.imei, d.iccid, d.vehicle, d.name, d.phone].some(v => String(v || '').toLowerCase().includes(q))));
   $('#dvRows').innerHTML = list.length ? list.slice(0, 300).map(d => { const st = expState(d.expiry);
     return `<tr><td>${esc(d.imei)}</td><td>${esc(d.iccid || '')}</td><td><b>${esc(d.vehicle)}</b></td><td>${esc(d.name)}</td><td>${esc(d.phone)}</td><td>${esc(d.plan || '')}</td><td>${d.expiry ? fmtD(d.expiry) + ' ' : ''}<span class="ex ${st.k}">${st.t}</span></td>
-      <td><div class="row-actions">${can('invadd') ? `<button class="ghost" onclick="editDevice('${d.id}')">Edit</button>` : ''}${can('delete') ? `<button class="ghost danger" onclick="delDevice('${d.id}')">Delete</button>` : ''}</div></td></tr>`; }).join('')
+      <td><div class="row-actions">${d.shared ? '<span class="small" style="color:var(--muted)">Admin list</span>' : ''}${!d.shared && can('invadd') ? `<button class="ghost" onclick="editDevice('${d.id}')">Edit</button>` : ''}${!d.shared && can('delete') ? `<button class="ghost danger" onclick="delDevice('${d.id}')">Delete</button>` : ''}</div></td></tr>`; }).join('')
     : '<tr><td colspan="8" class="empty">No devices here yet.</td></tr>';
-  $('#dvCount').textContent = db.devices.length ? 'Showing ' + Math.min(list.length, 300) + ' of ' + list.length + ' device(s)' + (list.length > 300 ? '. Use search to narrow down.' : '') : '';
+  $('#dvCount').textContent = allDevs().length ? 'Showing ' + Math.min(list.length, 300) + ' of ' + list.length + ' device(s)' + (list.length > 300 ? '. Use search to narrow down.' : '') : '';
 }
 function editDevice(id) { if (!can('invadd')) return; editD = id; renderInventory(); window.scrollTo(0, 0); }
 function saveDevice() {
@@ -2320,8 +2345,12 @@ function tdVehFill(v) {
   const n = normVeh(v);
   const hit = n ? tdVeh.filter(x => x.imei && normVeh(x.vehicle) === n)
     .sort((a, b) => String(b.updated || b.last || b.created || '').localeCompare(String(a.updated || a.last || a.created || '')))[0] : null;
+  // not in Vehicle Database -> look in IMEI Inventory (All devices)
+  const inv = !hit && n ? allDevs().find(x => x.imei && normVeh(x.vehicle) === n) : null;
   if (hit) {
     if (!im.value.trim() || im.value === tdAutoImei) { im.value = hit.imei; tdAutoImei = hit.imei; tdSel = hit.owner + '/' + hit.id; tdDraw(); }
+  } else if (inv) {
+    if (!im.value.trim() || im.value === tdAutoImei) { im.value = inv.imei; tdAutoImei = inv.imei; tdSel = ''; tdDraw(); }
   } else if (tdAutoImei && im.value === tdAutoImei) { im.value = ''; tdAutoImei = ''; tdSel = ''; tdDraw(); }
 }
 function tdStatus(t, s) {
@@ -3116,7 +3145,7 @@ async function login() {
 function endSession() {
   curMod = 'bill'; document.body.classList.remove('mines'); $('#modbar').hidden = true; mEditT = null;
   clearTimeout(syncTimer); dirty = false; syncing = false;
-  tdStop(); tdAdminCfg = null; tdVeh = []; tdSel = ''; tdSent = 0; tdPkt = ''; tdMsg = {t: 'Result will appear here', s: ''};
+  sharedDev = []; sentShare = ''; sharedAt = 0; tdStop(); tdAdminCfg = null; tdVeh = []; tdSel = ''; tdSent = 0; tdPkt = ''; tdMsg = {t: 'Result will appear here', s: ''};
   cur = null; acct = null; db = defaults(); remote = {core: {}, invoices: []}; sent = {core: '', inv: {}};
   rrSeen = null; rrCache = []; setRRBadge(0);
   closeViewer(); closePay(); $('#choice').hidden = true; $('#main').innerHTML = ''; $('#viewbar').hidden = true;
